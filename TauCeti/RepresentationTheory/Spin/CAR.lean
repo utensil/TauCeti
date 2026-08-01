@@ -48,6 +48,7 @@ noncomputable def traceQuadraticForm (N : ℕ) :
       LinearMap.BilinMap ℂ (Matrix (Fin N) (Fin N) ℂ) ℂ)
 
 /-- The defining equation for `traceQuadraticForm`. -/
+@[simp]
 theorem traceQuadraticForm_apply (N : ℕ) (X : Matrix (Fin N) (Fin N) ℂ) :
     traceQuadraticForm N X = Matrix.trace (X * X) :=
   LinearMap.BilinMap.toQuadraticMap_apply _ _
