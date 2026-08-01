@@ -30,27 +30,13 @@ namespace TauCeti
 /-- The trace quadratic form on `N × N` complex matrices. -/
 noncomputable def traceQuadraticForm (N : ℕ) :
     QuadraticForm ℂ (Matrix (Fin N) (Fin N) ℂ) :=
-  LinearMap.BilinMap.toQuadraticMap
-    (LinearMap.mk₂ ℂ
-      (fun X Y => Matrix.trace (X * Y))
-      (by
-        intro X X' Y
-        rw [Matrix.add_mul, Matrix.trace_add])
-      (by
-        intro c X Y
-        rw [Matrix.smul_mul, Matrix.trace_smul])
-      (by
-        intro X Y Y'
-        rw [Matrix.mul_add, Matrix.trace_add])
-      (by
-        intro c X Y
-        rw [Matrix.mul_smul, Matrix.trace_smul]) :
-      LinearMap.BilinMap ℂ (Matrix (Fin N) (Fin N) ℂ) ℂ)
+  (Matrix.traceLinearMap (Fin N) ℂ ℂ).compQuadraticMap
+    (QuadraticMap.sq (R := ℂ) (A := Matrix (Fin N) (Fin N) ℂ))
 
 /-- The defining equation for `traceQuadraticForm`. -/
 @[simp]
 theorem traceQuadraticForm_apply (N : ℕ) (X : Matrix (Fin N) (Fin N) ℂ) :
     traceQuadraticForm N X = Matrix.trace (X * X) :=
-  LinearMap.BilinMap.toQuadraticMap_apply _ _
+  by simp [traceQuadraticForm]
 
 end TauCeti
