@@ -5,6 +5,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 module
 
 import Mathlib.Tactic.NoncommRing
+public import Mathlib.Algebra.Lie.OfAssociative
 public import Mathlib.LinearAlgebra.ExteriorPower.Basic
 public import TauCeti.LinearAlgebra.CliffordAlgebra.Filtration
 
@@ -41,6 +42,10 @@ Layer 9 CAR worked instance.
 * `TauCeti.CliffordAlgebra.cliffordBivector_mem_evenOdd_zero` and
   `TauCeti.CliffordAlgebra.cliffordBivector_mem_filtration_two`: it is even and has filtration
   degree at most two.
+* `TauCeti.CliffordAlgebra.cliffordBivector_lie_cliffordBivector`: the ambient commutator of
+  decomposable bivectors.
+* `TauCeti.CliffordAlgebra.cliffordBivectorLieSubalgebra`: their image as a Lie subalgebra of the
+  Clifford algebra with its ambient commutator.
 
 ## References
 
@@ -57,6 +62,8 @@ universe u v
 namespace TauCeti
 
 namespace CliffordAlgebra
+
+attribute [local instance 100] LieRing.ofAssociativeRing
 
 section CommRing
 
@@ -210,6 +217,86 @@ theorem cliffordBivector_lie_ι (a b x : M) :
             abel
   rw [h]
   exact invOf_smul_smul (2 : R) _
+
+/-- The ambient commutator of two decomposable Clifford bivectors. The half-normalization in
+`cliffordBivector` makes this the usual bivector commutator formula without an additional scalar
+factor. -/
+theorem cliffordBivector_lie_cliffordBivector (a b c d : M) :
+    ⁅cliffordBivector Q a b, cliffordBivector Q c d⁆ =
+      QuadraticMap.polar Q b c • cliffordBivector Q a d -
+        QuadraticMap.polar Q a c • cliffordBivector Q b d +
+      QuadraticMap.polar Q b d • cliffordBivector Q c a -
+        QuadraticMap.polar Q a d • cliffordBivector Q c b := by
+  have h_lie_mul (x y z : CliffordAlgebra Q) :
+      ⁅x, y * z⁆ = ⁅x, y⁆ * z + y * ⁅x, z⁆ := by
+    rw [Ring.lie_def, Ring.lie_def, Ring.lie_def]
+    noncomm_ring
+  rw [cliffordBivector_def Q c d, lie_smul, lie_sub]
+  rw [h_lie_mul, h_lie_mul]
+  rw [cliffordBivector_lie_ι, cliffordBivector_lie_ι]
+  simp only [map_sub, map_smul]
+  rw [cliffordBivector_def, cliffordBivector_def, cliffordBivector_def,
+    cliffordBivector_def]
+  simp only [sub_mul, mul_sub, smul_mul_assoc, mul_smul_comm, smul_sub, smul_add, smul_smul]
+  module
+
+/-- The range of the exterior-square Clifford bivector map is closed under the ambient Clifford
+commutator. -/
+private theorem lie_mem_cliffordBivectorExterior_range {x y : CliffordAlgebra Q}
+    (hx : x ∈ LinearMap.range (cliffordBivectorExterior Q))
+    (hy : y ∈ LinearMap.range (cliffordBivectorExterior Q)) :
+    ⁅x, y⁆ ∈ LinearMap.range (cliffordBivectorExterior Q) := by
+  have h_bivector_mem (a b : M) :
+      cliffordBivector Q a b ∈ LinearMap.range (cliffordBivectorExterior Q) := by
+    rw [← cliffordBivectorExterior_apply_ιMulti]
+    exact LinearMap.mem_range_self _ _
+  have h_decomp (a b : M) :
+      ∀ y ∈ LinearMap.range (cliffordBivectorExterior Q),
+        ⁅cliffordBivector Q a b, y⁆ ∈ LinearMap.range (cliffordBivectorExterior Q) := by
+    intro y hy
+    let P := (LinearMap.range (cliffordBivectorExterior Q)).comap
+      (LieModule.toEnd R (CliffordAlgebra Q) (CliffordAlgebra Q) (cliffordBivector Q a b))
+    have hP : LinearMap.range (cliffordBivectorExterior Q) ≤ P :=
+      cliffordBivectorExterior_range_le Q P (fun c d => by
+        rw [Submodule.mem_comap, LieModule.toEnd_apply_apply,
+          cliffordBivector_lie_cliffordBivector]
+        apply Submodule.sub_mem
+        · apply Submodule.add_mem
+          · exact Submodule.sub_mem _
+              (Submodule.smul_mem _ _ (h_bivector_mem _ _))
+              (Submodule.smul_mem _ _ (h_bivector_mem _ _))
+          · exact Submodule.smul_mem _ _ (h_bivector_mem _ _)
+        · exact Submodule.smul_mem _ _ (h_bivector_mem _ _))
+    exact hP hy
+  let P := (LinearMap.range (cliffordBivectorExterior Q)).comap
+    ((LieModule.toEnd R (CliffordAlgebra Q) (CliffordAlgebra Q)).flip y)
+  have hP : LinearMap.range (cliffordBivectorExterior Q) ≤ P :=
+    cliffordBivectorExterior_range_le Q P (fun a b => by
+      rw [Submodule.mem_comap]
+      exact h_decomp a b y hy)
+  exact hP hx
+
+/-- Clifford bivectors as an ambient Lie subalgebra of the Clifford algebra. This does not put a
+Lie bracket on the exterior square itself. -/
+noncomputable def cliffordBivectorLieSubalgebra : LieSubalgebra R (CliffordAlgebra Q) :=
+  { LinearMap.range (cliffordBivectorExterior Q) with
+    lie_mem' := lie_mem_cliffordBivectorExterior_range Q }
+
+/-- Membership in the Clifford bivector Lie subalgebra means being the image of an exterior
+bivector. -/
+@[simp]
+theorem mem_cliffordBivectorLieSubalgebra_iff {x : CliffordAlgebra Q} :
+    x ∈ cliffordBivectorLieSubalgebra Q ↔
+      ∃ y : ⋀[R]^2 M, cliffordBivectorExterior Q y = x := by
+  simpa only [cliffordBivectorLieSubalgebra, LieSubalgebra.mem_mk_iff'] using
+    (LinearMap.mem_range (f := cliffordBivectorExterior Q))
+
+/-- The exterior-square Clifford bivector map takes values in the Clifford bivector Lie
+subalgebra. -/
+theorem cliffordBivectorExterior_mem_cliffordBivectorLieSubalgebra (x : ⋀[R]^2 M) :
+    cliffordBivectorExterior Q x ∈ cliffordBivectorLieSubalgebra Q := by
+  simpa only [cliffordBivectorLieSubalgebra, LieSubalgebra.mem_mk_iff'] using
+    (LinearMap.mem_range_self (cliffordBivectorExterior Q) x)
 
 end CommRing
 
