@@ -8,6 +8,8 @@ module
 public import TauCeti.LinearAlgebra.CliffordAlgebra.RealForm
 public import Mathlib.RingTheory.MatrixAlgebra
 
+import Mathlib.LinearAlgebra.Matrix.Unique
+
 /-!
 # Hyperbolic Bott periodicity for real Clifford algebras
 
@@ -19,6 +21,8 @@ negative generator is equivalent to tensoring with two-by-two real matrices.
 * `TauCeti.CliffordAlgebra.hyperbolicEquivTensor`: adjoining a hyperbolic plane to an arbitrary
   finite-dimensional real quadratic module tensors its Clifford algebra with `M₂(ℝ)`;
 * `TauCeti.realCliffordBottEquiv`: the corresponding equivalence for the standard signature forms.
+* `TauCeti.realCliffordBottIterEquiv`: the iterated standard-signature equivalence, with matrix
+  size `2 ^ n` after adjoining `n` hyperbolic planes.
 -/
 
 public section
@@ -374,6 +378,85 @@ theorem realCliffordBottEquiv_ι (p q : ℕ)
     _root_.CliffordAlgebra.equivOfIsometry_apply,
     _root_.CliffordAlgebra.map_apply_ι,
     CliffordAlgebra.hyperbolicEquivTensor_ι]
+  rfl
+
+/-! ### Iterated hyperbolic reduction -/
+
+private def tensorMatrixMulEquiv (R A : Type*) [CommSemiring R] [Semiring A] [Algebra R A]
+    (m n : ℕ) :
+    (A ⊗[R] Matrix (Fin m) (Fin m) R) ⊗[R] Matrix (Fin n) (Fin n) R ≃ₐ[R]
+      A ⊗[R] Matrix (Fin (m * n)) (Fin (m * n)) R :=
+  (Algebra.TensorProduct.assoc R R R A
+      (Matrix (Fin m) (Fin m) R) (Matrix (Fin n) (Fin n) R)).trans
+    (Algebra.TensorProduct.congr (AlgEquiv.refl : A ≃ₐ[R] A)
+      ((Matrix.kroneckerAlgEquiv (Fin m) (Fin n) R).trans
+        (Matrix.reindexAlgEquiv R R finProdFinEquiv)))
+
+private def tensorMatrixOneEquiv (R A : Type*) [CommSemiring R] [Semiring A] [Algebra R A] :
+    A ≃ₐ[R] A ⊗[R] Matrix (Fin 1) (Fin 1) R :=
+  ((Matrix.uniqueAlgEquiv (R := R) (A := A) (m := Unit)).symm.trans
+      (Matrix.reindexAlgEquiv R A (Equiv.ofUnique Unit (Fin 1)))).trans
+    (matrixEquivTensor (Fin 1) R A)
+
+private noncomputable def realCliffordBottIterEquivImpl (p q : ℕ) : (n : ℕ) →
+    _root_.CliffordAlgebra (realCliffordForm (p + n) (q + n)) ≃ₐ[ℝ]
+      _root_.CliffordAlgebra (realCliffordForm p q) ⊗[ℝ]
+        Matrix (Fin (2 ^ n)) (Fin (2 ^ n)) ℝ
+  | 0 => by
+      simpa using tensorMatrixOneEquiv ℝ (_root_.CliffordAlgebra (realCliffordForm p q))
+  | n + 1 =>
+      (realCliffordBottEquiv (p + n) (q + n)).trans
+        ((Algebra.TensorProduct.congr (realCliffordBottIterEquivImpl p q n)
+          (AlgEquiv.refl : Matrix (Fin 2) (Fin 2) ℝ ≃ₐ[ℝ] _)).trans
+            (tensorMatrixMulEquiv ℝ (_root_.CliffordAlgebra (realCliffordForm p q)) (2 ^ n) 2))
+
+/-- Iterating the hyperbolic Bott step `n` times identifies
+`Cliff(p + n, q + n)` with `Cliff(p, q) ⊗ M_(2 ^ n)(ℝ)`. -/
+@[irreducible]
+noncomputable def realCliffordBottIterEquiv (p q n : ℕ) :
+    _root_.CliffordAlgebra (realCliffordForm (p + n) (q + n)) ≃ₐ[ℝ]
+      _root_.CliffordAlgebra (realCliffordForm p q) ⊗[ℝ]
+        Matrix (Fin (2 ^ n)) (Fin (2 ^ n)) ℝ :=
+  realCliffordBottIterEquivImpl p q n
+
+/-- At zero iterations, `realCliffordBottIterEquiv` is the canonical identification with a
+one-by-one matrix tensor factor. -/
+@[simp]
+theorem realCliffordBottIterEquiv_zero_apply (p q : ℕ)
+    (x : _root_.CliffordAlgebra (realCliffordForm p q)) :
+    let e : _root_.CliffordAlgebra (realCliffordForm p q) ≃ₐ[ℝ]
+        _root_.CliffordAlgebra (realCliffordForm p q) ⊗[ℝ]
+          Matrix (Fin 1) (Fin 1) ℝ := realCliffordBottIterEquiv p q 0
+    e x = x ⊗ₜ[ℝ] (1 : Matrix (Fin 1) (Fin 1) ℝ) := by
+  unfold realCliffordBottIterEquiv
+  change tensorMatrixOneEquiv ℝ (_root_.CliffordAlgebra (realCliffordForm p q)) x = _
+  rw [tensorMatrixOneEquiv, AlgEquiv.trans_apply, matrixEquivTensor_apply,
+    Fintype.sum_prod_type, Fin.sum_univ_one, Fin.sum_univ_one]
+  change x ⊗ₜ[ℝ] Matrix.single 0 0 1 = x ⊗ₜ[ℝ] 1
+  congr 1
+  ext i j
+  fin_cases i
+  fin_cases j
+  simp
+
+/-- The successor iteration first applies one hyperbolic Bott step, transports the previous
+iteration through the left tensor factor, and absorbs the two matrix factors by the Kronecker
+equivalence. -/
+theorem realCliffordBottIterEquiv_succ (p q n : ℕ) :
+    realCliffordBottIterEquiv p q (n + 1) =
+      (realCliffordBottEquiv (p + n) (q + n)).trans
+        ((Algebra.TensorProduct.congr (realCliffordBottIterEquiv p q n)
+          (AlgEquiv.refl : Matrix (Fin 2) (Fin 2) ℝ ≃ₐ[ℝ] _)).trans
+          ((Algebra.TensorProduct.assoc ℝ ℝ ℝ
+              (_root_.CliffordAlgebra (realCliffordForm p q))
+              (Matrix (Fin (2 ^ n)) (Fin (2 ^ n)) ℝ)
+              (Matrix (Fin 2) (Fin 2) ℝ)).trans
+            (Algebra.TensorProduct.congr
+              (AlgEquiv.refl : _root_.CliffordAlgebra (realCliffordForm p q) ≃ₐ[ℝ] _)
+              ((Matrix.kroneckerAlgEquiv (Fin (2 ^ n)) (Fin 2) ℝ).trans
+                (Matrix.reindexAlgEquiv ℝ ℝ finProdFinEquiv))))) := by
+  unfold realCliffordBottIterEquiv
+  rw [realCliffordBottIterEquivImpl]
   rfl
 
 end TauCeti
