@@ -118,8 +118,7 @@ theorem Algebra.isSplittingField_self_of_isBrauerTrivial (h : IsBrauerTrivial (C
     IsSimpleRing.exists_algEquiv_matrix_centralDivisionRing K A
   -- The second presentation of `Mₚ(A)`, of size `p * r` and over `D`.
   have g : Matrix (Fin p) (Fin p) A ≃ₐ[K] Matrix (Fin (p * r)) (Fin (p * r)) D :=
-    (f.mapMatrix (m := Fin p)).trans <| (Matrix.compAlgEquiv (Fin p) (Fin r) D K).trans <|
-      Matrix.reindexAlgEquiv K D finProdFinEquiv
+    (f.mapMatrix (m := Fin p)).trans <| Matrix.compFinAlgEquiv p r K D
   have hsize : p * r = q := by
     simpa using card_eq_of_ringEquiv_matrix g.toRingEquiv e'.toRingEquiv
   -- `dim_K A = r ^ 2`, by comparing the dimensions of the two sides of `e'`.

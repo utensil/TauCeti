@@ -8,7 +8,7 @@ module
 public import TauCeti.Algebra.CentralSimple.MaximalSubfield
 public import Mathlib.Algebra.Central.Matrix
 public import Mathlib.RingTheory.SimpleRing.Matrix
-import Mathlib.Data.Matrix.Composition
+import TauCeti.Algebra.Matrix.TensorProduct
 import TauCeti.Algebra.CentralSimple.Wedderburn
 import TauCeti.RingTheory.Semisimple.MatrixDivisionRing
 
@@ -161,8 +161,7 @@ theorem index_matrix (n : ℕ) [NeZero n] :
   let e : Matrix (Fin n) (Fin n) A ≃ₐ[K]
       Matrix (Fin (n * W.matrixSize)) (Fin (n * W.matrixSize)) W.divisionAlgebra :=
     (W.equiv.mapMatrix (m := Fin n)).trans <|
-      (Matrix.compAlgEquiv (Fin n) (Fin W.matrixSize) W.divisionAlgebra K).trans <|
-        Matrix.reindexAlgEquiv K W.divisionAlgebra finProdFinEquiv
+      Matrix.compFinAlgEquiv n W.matrixSize K W.divisionAlgebra
   exact (index_eq_deg_of_algEquiv_matrix e).trans
     (index_eq_deg_of_algEquiv_matrix W.equiv).symm
 

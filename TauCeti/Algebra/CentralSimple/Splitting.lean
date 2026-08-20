@@ -20,7 +20,7 @@ public import TauCeti.Algebra.Matrix.BaseChange
 -- the fundamental theorem of algebra (`Complex.isAlgClosed`, the one heavy import here) of the
 -- worked examples are all used only inside proofs, so downstream importers do not pay for them.
 import Mathlib.Analysis.Complex.Polynomial.Basic
-import Mathlib.Data.Matrix.Composition
+import TauCeti.Algebra.Matrix.TensorProduct
 import Mathlib.LinearAlgebra.Dimension.Constructions
 import TauCeti.Algebra.CentralSimple.Wedderburn
 import TauCeti.Algebra.Central.Quaternion
@@ -157,8 +157,7 @@ theorem IsSplittingField.matrix (h : IsSplittingField K A L) (n : ℕ) :
   refine (isSplittingField_iff K _ L).2 ⟨n * m, ⟨?_⟩⟩
   exact (matrixCoeffBaseChangeAlgEquiv K L (Fin n) A).trans <|
     (e.mapMatrix (m := Fin n)).trans <|
-      (Matrix.compAlgEquiv (Fin n) (Fin m) L L).trans <|
-        Matrix.reindexAlgEquiv L L finProdFinEquiv
+      Matrix.compFinAlgEquiv n m L L
 
 /-- **`A` is split by its own base field exactly when it is a matrix algebra over it.** This is the
 sanity check on the definition: over `L = K` the scalar extension does nothing, so "split" is
