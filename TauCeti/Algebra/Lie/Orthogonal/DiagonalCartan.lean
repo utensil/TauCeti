@@ -20,9 +20,10 @@ split symmetric form with matrix
 ```
 
 Its standard Cartan subalgebra consists of the diagonal matrices `diag(d, -d)`. This file bundles
-that subalgebra, proves that it is abelian and self-normalizing, and gives its coordinate basis and
-dual coordinates. Over an algebraically closed field the existing finite-dimensional
-triangularizability instance therefore makes it a splitting Cartan subalgebra.
+that subalgebra, proves that it is abelian and self-normalizing when `2` is regular, and gives its
+coordinate basis and dual coordinates. Over an algebraically closed field of characteristic not
+two, the existing finite-dimensional triangularizability instance therefore makes it a splitting
+Cartan subalgebra.
 
 The self-normalizing argument is entrywise. If `X` normalizes every `diag(d, -d)`, then the
 off-diagonal `(a, b)` entry of their bracket is
@@ -66,37 +67,48 @@ attribute [local instance 100] LieRing.ofAssociativeRing
 
 universe u
 
-variable {K : Type u} [CommRing K]
-variable {ι : Type*} [DecidableEq ι] [Fintype ι]
+variable {K : Type u}
+variable {ι : Type*}
 
 /-! ### The diagonal matrices of type D -/
+
+section Neg
+
+variable [Neg K]
 
 /-- The weight of a coordinate in the standard type-`D` module: `d i` on the first copy of `ι`
 and `-d i` on the second. -/
 def typeDDiagonalValue (d : ι → K) : ι ⊕ ι → K :=
   Sum.elim d (-d)
 
-omit [DecidableEq ι] [Fintype ι] in
 @[simp]
 theorem typeDDiagonalValue_inl (d : ι → K) (i : ι) :
     typeDDiagonalValue d (.inl i) = d i :=
   (rfl)
 
-omit [DecidableEq ι] [Fintype ι] in
 @[simp]
 theorem typeDDiagonalValue_inr (d : ι → K) (i : ι) :
     typeDDiagonalValue d (.inr i) = -d i :=
   (rfl)
 
+end Neg
+
+section NegZero
+
+variable [Neg K] [Zero K] [DecidableEq ι]
+
 /-- The ambient matrix `diag(d, -d)` in the split type-`D` model. -/
 def typeDDiagonalMatrix (d : ι → K) : Matrix (ι ⊕ ι) (ι ⊕ ι) K :=
   diagonal (typeDDiagonalValue d)
 
-omit [Fintype ι] in
 @[simp]
 theorem typeDDiagonalMatrix_apply (d : ι → K) (i j : ι ⊕ ι) :
     typeDDiagonalMatrix d i j = if i = j then typeDDiagonalValue d i else 0 :=
   (rfl)
+
+end NegZero
+
+variable [CommRing K] [DecidableEq ι] [Fintype ι]
 
 /-- Every `diag(d, -d)` is skew-adjoint for the split type-`D` form. -/
 theorem typeDDiagonalMatrix_mem_typeD (d : ι → K) :
@@ -106,12 +118,14 @@ theorem typeDDiagonalMatrix_mem_typeD (d : ι → K) :
   -- Membership in `typeD` unfolds to the ambient skew-adjoint matrix equation.
   change (typeDDiagonalMatrix d)ᵀ * LieAlgebra.Orthogonal.JD ι K =
     LieAlgebra.Orthogonal.JD ι K * (-typeDDiagonalMatrix d)
-  ext a b
-  rcases a with i | i <;> rcases b with j | j <;> by_cases hij : i = j <;>
-    simp [typeDDiagonalMatrix, typeDDiagonalValue, LieAlgebra.Orthogonal.JD,
-      Matrix.mul_apply, Matrix.one_apply, hij]
+  rw [typeDDiagonalMatrix, typeDDiagonalValue]
+  rw [← Matrix.fromBlocks_diagonal]
+  rw [Matrix.fromBlocks_transpose, LieAlgebra.Orthogonal.JD,
+    Matrix.fromBlocks_multiply, Matrix.fromBlocks_neg, Matrix.fromBlocks_multiply]
+  simp
 
 /-- In a type-`D` matrix, the paired diagonal entries are negatives. -/
+@[simp]
 theorem typeD_apply_inr_inr (A : LieAlgebra.Orthogonal.typeD ι K) (i : ι) :
     (A : Matrix (ι ⊕ ι) (ι ⊕ ι) K) (.inr i) (.inr i) =
       -(A : Matrix (ι ⊕ ι) (ι ⊕ ι) K) (.inl i) (.inl i) := by
@@ -174,7 +188,7 @@ def typeDDiagonalEquiv : (ι → K) ≃ₗ[K] typeDDiagonalCartan K ι where
     · subst b
       rcases a with i | i
       · simp [typeDDiagonalMatrix]
-      · simpa [typeDDiagonalMatrix] using (typeD_apply_inr_inr A.1 i).symm
+      · simp [typeDDiagonalMatrix]
     · rw [typeDDiagonalMatrix_apply, ite_eq_right hab]
       exact (mem_typeDDiagonalCartan_iff_isDiag.mp A.2 hab).symm
 
@@ -233,31 +247,58 @@ private theorem exists_isRegular_typeDDiagonalValue_sub (h2 : IsRegular (2 : K))
     refine ⟨Pi.single i 1, ?_⟩
     simpa [typeDDiagonalValue, hij] using (isRegular_one : IsRegular (1 : K))
 
-/-- Bracketing with `diag(d, -d)` scales each matrix entry by the difference of its two coordinate
-weights. -/
+/-- The adjoint action of the matrix `diag(d, -d)` scales each matrix entry by the difference of
+its two coordinate weights. -/
+@[simp]
+theorem typeDDiagonalMatrix_lie_apply (d : ι → K) (X : LieAlgebra.Orthogonal.typeD ι K)
+    (a b : ι ⊕ ι) :
+    (⁅typeDDiagonalMatrix d, (X : Matrix (ι ⊕ ι) (ι ⊕ ι) K)⁆ :
+        Matrix (ι ⊕ ι) (ι ⊕ ι) K) a b =
+      (typeDDiagonalValue d a - typeDDiagonalValue d b) *
+        (X : Matrix (ι ⊕ ι) (ι ⊕ ι) K) a b := by
+  simpa only [typeDDiagonalMatrix, diagonal_apply_eq] using
+    lie_apply_of_mem_diagonalCartan
+      (diagonal_mem_diagonalCartan (typeDDiagonalValue d))
+      (X : Matrix (ι ⊕ ι) (ι ⊕ ι) K) a b
+
+/-- The adjoint action of the bundled Cartan element `diag(d, -d)` has the same entrywise normal
+form. -/
+theorem typeDDiagonalEquiv_lie_apply (d : ι → K) (X : LieAlgebra.Orthogonal.typeD ι K)
+    (a b : ι ⊕ ι) :
+    ((⁅(typeDDiagonalEquiv (K := K) (ι := ι) d : typeDDiagonalCartan K ι), X⁆ :
+        LieAlgebra.Orthogonal.typeD ι K) : Matrix (ι ⊕ ι) (ι ⊕ ι) K) a b =
+      (typeDDiagonalValue d a - typeDDiagonalValue d b) *
+        (X : Matrix (ι ⊕ ι) (ι ⊕ ι) K) a b := by
+  simpa only [LieSubalgebra.coe_bracket_of_module, coe_typeDDiagonalEquiv_apply,
+    LieSubalgebra.coe_bracket] using typeDDiagonalMatrix_lie_apply d X a b
+
+/-- Bracketing in the reverse order with the matrix `diag(d, -d)` scales each matrix entry by the
+reverse weight difference. -/
+@[simp]
+theorem lie_typeDDiagonalMatrix_apply (X : LieAlgebra.Orthogonal.typeD ι K) (d : ι → K)
+    (a b : ι ⊕ ι) :
+    (⁅(X : Matrix (ι ⊕ ι) (ι ⊕ ι) K), typeDDiagonalMatrix d⁆ :
+        Matrix (ι ⊕ ι) (ι ⊕ ι) K) a b =
+      (typeDDiagonalValue d b - typeDDiagonalValue d a) *
+        (X : Matrix (ι ⊕ ι) (ι ⊕ ι) K) a b := by
+  have hskew :
+      (⁅(X : Matrix (ι ⊕ ι) (ι ⊕ ι) K), typeDDiagonalMatrix d⁆ :
+        Matrix (ι ⊕ ι) (ι ⊕ ι) K) =
+        -⁅typeDDiagonalMatrix d, (X : Matrix (ι ⊕ ι) (ι ⊕ ι) K)⁆ :=
+    (lie_skew _ _).symm
+  rw [hskew, Matrix.neg_apply, typeDDiagonalMatrix_lie_apply]
+  ring
+
+/-- Bracketing in the reverse order with the bundled Cartan element `diag(d, -d)` has the same
+entrywise normal form. -/
 theorem lie_typeDDiagonalEquiv_apply (X : LieAlgebra.Orthogonal.typeD ι K) (d : ι → K)
     (a b : ι ⊕ ι) :
     ((⁅X, (typeDDiagonalEquiv (K := K) (ι := ι) d : typeDDiagonalCartan K ι)⁆ :
         LieAlgebra.Orthogonal.typeD ι K) : Matrix (ι ⊕ ι) (ι ⊕ ι) K) a b =
       (typeDDiagonalValue d b - typeDDiagonalValue d a) *
         (X : Matrix (ι ⊕ ι) (ι ⊕ ι) K) a b := by
-  have h := lie_apply_of_mem_diagonalCartan
-    (diagonal_mem_diagonalCartan (typeDDiagonalValue d))
-    (X : Matrix (ι ⊕ ι) (ι ⊕ ι) K) a b
-  -- Identify the public type-`D` diagonal with the ambient diagonal used by the generic theorem.
-  change (⁅typeDDiagonalMatrix d, (X : Matrix (ι ⊕ ι) (ι ⊕ ι) K)⁆ :
-    Matrix (ι ⊕ ι) (ι ⊕ ι) K) a b = _ at h
-  have hskew :
-      (⁅(X : Matrix (ι ⊕ ι) (ι ⊕ ι) K), typeDDiagonalMatrix d⁆ :
-        Matrix (ι ⊕ ι) (ι ⊕ ι) K) =
-        -⁅typeDDiagonalMatrix d, (X : Matrix (ι ⊕ ι) (ι ⊕ ι) K)⁆ :=
-    (lie_skew _ _).symm
-  -- Coerce the type-`D` bracket to the ambient matrix bracket and reverse its order.
-  change (⁅(X : Matrix (ι ⊕ ι) (ι ⊕ ι) K), typeDDiagonalMatrix d⁆ :
-    Matrix (ι ⊕ ι) (ι ⊕ ι) K) a b = _
-  rw [hskew, Matrix.neg_apply, h]
-  simp only [diagonal_apply_eq]
-  ring
+  simpa only [coe_typeDDiagonalEquiv_apply, LieSubalgebra.coe_bracket] using
+    lie_typeDDiagonalMatrix_apply X d a b
 
 variable (K ι)
 
@@ -285,12 +326,6 @@ instance instIsCartanSubalgebraTypeDDiagonalCartan [h2 : Fact (IsRegular (2 : K)
     (typeDDiagonalCartan K ι).IsCartanSubalgebra where
   nilpotent := inferInstance
   self_normalizing := typeDDiagonalCartan_normalizer_eq_self K ι h2.out
-
-/-- Over a domain, nonvanishing of `2` supplies the regularity fact used by the type-`D` Cartan
-instance. -/
-instance (priority := low) instFactIsRegularTwo [NoZeroDivisors K] [NeZero (2 : K)] :
-    Fact (IsRegular (2 : K)) :=
-  ⟨IsRegular.of_ne_zero' (NeZero.ne (2 : K))⟩
 
 end
 
@@ -330,35 +365,35 @@ theorem finrank_typeDDiagonalCartan [StrongRankCondition K] :
 /-- Coordinates on the type-`D` Cartan are also coordinates on its dual. -/
 noncomputable def typeDWeightEquiv :
     (ι → K) ≃ₗ[K] Module.Dual K (typeDDiagonalCartan K ι) :=
-  (typeDDiagonalEquiv (K := K) (ι := ι)).trans
-    (typeDDiagonalCartanBasis (K := K) (ι := ι)).toDualEquiv
+  (typeDDiagonalCartanBasis (K := K) (ι := ι)).dualBasis.equivFun.symm
 
 @[simp]
 theorem typeDWeightEquiv_apply (mu : ι → K) (A : typeDDiagonalCartan K ι) :
     typeDWeightEquiv (K := K) (ι := ι) mu A =
       ∑ i, mu i * (A : Matrix (ι ⊕ ι) (ι ⊕ ι) K) (.inl i) (.inl i) := by
-  conv_lhs => rw [← (typeDDiagonalCartanBasis (K := K) (ι := ι)).sum_repr A]
-  simp [typeDWeightEquiv, Module.Basis.toDual_apply_left, mul_comm]
+  let b := typeDDiagonalCartanBasis (K := K) (ι := ι)
+  have hcoord (i : ι) : typeDWeightEquiv (K := K) (ι := ι) mu (b i) = mu i := by
+    simpa only [typeDWeightEquiv, Module.Basis.dualBasis_equivFun] using
+      congrFun (b.dualBasis.equivFun.apply_symm_apply mu) i
+  conv_lhs => rw [← b.sum_repr A]
+  simp [hcoord, b, typeDDiagonalCartanBasis_repr_apply, mul_comm]
 
 @[simp]
 theorem typeDWeightEquiv_symm_apply
     (f : Module.Dual K (typeDDiagonalCartan K ι)) (i : ι) :
     (typeDWeightEquiv (K := K) (ι := ι)).symm f i =
       f (typeDDiagonalCartanBasis (K := K) (ι := ι) i) := by
-  let b := typeDDiagonalCartanBasis (K := K) (ι := ι)
-  -- Unfold the composite equivalence to the coordinate statement of its defining basis.
-  change b.repr (b.toDualEquiv.symm f) i = f (b i)
-  simpa only [Module.Basis.toDualEquiv_apply, Module.Basis.toDual_apply_left] using
-    LinearMap.congr_fun (b.toDualEquiv.apply_symm_apply f) (b i)
+  exact (typeDDiagonalCartanBasis (K := K) (ι := ι)).dualBasis_equivFun f i
 
 /-- The coordinate functional `εᵢ` on the type-`D` diagonal Cartan. -/
 noncomputable def typeDEpsilon (i : ι) : Module.Dual K (typeDDiagonalCartan K ι) :=
-  typeDWeightEquiv (K := K) (ι := ι) (Pi.single i 1)
+  (typeDDiagonalCartanBasis (K := K) (ι := ι)).dualBasis i
 
 @[simp]
 theorem typeDEpsilon_apply (i : ι) (A : typeDDiagonalCartan K ι) :
     typeDEpsilon (K := K) (ι := ι) i A =
       (A : Matrix (ι ⊕ ι) (ι ⊕ ι) K) (.inl i) (.inl i) := by
-  simp [typeDEpsilon, Pi.single_apply]
+  rw [typeDEpsilon, Module.Basis.dualBasis_apply,
+    typeDDiagonalCartanBasis_repr_apply]
 
 end TauCeti
