@@ -26,6 +26,7 @@ identity, and the equality locus is then an open and closed subgroup of the prec
 
 * `lieMap_injective`: a smooth homomorphism out of a preconnected Lie group is determined by its Lie
   map.
+* `lieMap_inj`: equality of Lie maps simplifies to equality of smooth homomorphisms.
 -/
 
 public section
@@ -62,3 +63,12 @@ theorem lieMap_injective
   apply DFunLike.coe_injective
   exact congrArg (fun f : G →* G' => (f : G → G'))
     (MonoidHom.eq_of_eventuallyEq_one hnear)
+
+/-- Two smooth homomorphisms out of a preconnected Lie group have equal Lie maps exactly when they
+are equal. -/
+@[simp]
+theorem lieMap_inj
+    [LieGroup I ∞ G] [LieGroup I' ∞ G'] [PreconnectedSpace G]
+    [FiniteDimensional ℝ E] [FiniteDimensional ℝ E']
+    {φ ψ : ContMDiffMonoidMorphism I I' ∞ G G'} :
+    lieMap φ = lieMap ψ ↔ φ = ψ := lieMap_injective.eq_iff
