@@ -26,6 +26,8 @@ it does not require a Poincare--Birkhoff--Witt theorem or any freeness hypothesi
 * `TauCeti.UniversalEnvelopingAlgebra.prodEquivTensor`: the algebra equivalence
   `U(L × M) ≃ₐ[R] U(L) ⊗[R] U(M)`.
 * `TauCeti.UniversalEnvelopingAlgebra.prodEquivTensor_ι`: its value on a canonical generator.
+* `TauCeti.UniversalEnvelopingAlgebra.prodEquivTensor_map_inl` and `prodEquivTensor_map_inr`:
+  its values on the canonical factor inclusions.
 * `TauCeti.UniversalEnvelopingAlgebra.prodEquivTensor_naturality`: compatibility with maps of
   both Lie-algebra factors.
 * `TauCeti.UniversalEnvelopingAlgebra.prodEquivTensor_symm_tmul`: the inverse on a pure tensor.
@@ -33,6 +35,11 @@ it does not require a Poincare--Birkhoff--Witt theorem or any freeness hypothesi
 ## Roadmap
 
 This supplies the direct-sum functoriality used in Layer 3 of the LieHighestWeight roadmap.
+
+## References
+
+* Mathlib's `UniversalEnvelopingAlgebra.lift` in `Mathlib.Algebra.Lie.UniversalEnveloping`.
+* Mathlib's `Algebra.TensorProduct.lift` in `Mathlib.RingTheory.TensorProduct.Maps`.
 -/
 
 public section
@@ -120,7 +127,8 @@ private theorem toTensor_ι (x : L × M) :
       (_root_.UniversalEnvelopingAlgebra.ι R x.1) ⊗ₜ[R] (1 : UM) +
         (1 : UL) ⊗ₜ[R] (_root_.UniversalEnvelopingAlgebra.ι R x.2) := by
   rw [toTensor, _root_.UniversalEnvelopingAlgebra.lift_ι_apply]
-  rfl
+  simp [toTensorLie, Algebra.TensorProduct.includeLeft_apply,
+    Algebra.TensorProduct.includeRight_apply]
 
 private theorem toTensor_comp_fromLeft :
     (toTensor R L M).comp (fromLeft R L M) =
@@ -180,8 +188,8 @@ noncomputable def prodEquivTensor : UP ≃ₐ[R] UL ⊗[R] UM :=
 theorem prodEquivTensor_ι (x : L) (y : M) :
     prodEquivTensor R L M (_root_.UniversalEnvelopingAlgebra.ι R (x, y)) =
       (_root_.UniversalEnvelopingAlgebra.ι R x) ⊗ₜ[R] (1 : UM) +
-        (1 : UL) ⊗ₜ[R] (_root_.UniversalEnvelopingAlgebra.ι R y) :=
-  toTensor_ι R L M (x, y)
+        (1 : UL) ⊗ₜ[R] (_root_.UniversalEnvelopingAlgebra.ι R y) := by
+  rw [prodEquivTensor, AlgEquiv.ofAlgHom_apply, toTensor_ι]
 
 /-- The `simp`-normal form of `prodEquivTensor_ι`, stated for the canonical generators as `simp`
 writes them. -/
@@ -194,6 +202,22 @@ theorem prodEquivTensor_ι' (x : L) (y : M) :
         (1 : UL) ⊗ₜ[R]
           (_root_.UniversalEnvelopingAlgebra.mkAlgHom R M (TensorAlgebra.ι R y)) := by
   simpa using prodEquivTensor_ι R L M x y
+
+/-- On the left canonical factor, the product-to-tensor equivalence is tensoring with one. -/
+@[simp]
+theorem prodEquivTensor_map_inl (x : UL) :
+    prodEquivTensor R L M (map R (LieHom.inl R L M) x) = x ⊗ₜ[R] (1 : UM) := by
+  rw [prodEquivTensor, AlgEquiv.ofAlgHom_apply]
+  simpa only [fromLeft, AlgHom.comp_apply, Algebra.TensorProduct.includeLeft_apply] using
+    AlgHom.congr_fun (toTensor_comp_fromLeft R L M) x
+
+/-- On the right canonical factor, the product-to-tensor equivalence is tensoring one with it. -/
+@[simp]
+theorem prodEquivTensor_map_inr (y : UM) :
+    prodEquivTensor R L M (map R (LieHom.inr R L M) y) = (1 : UL) ⊗ₜ[R] y := by
+  rw [prodEquivTensor, AlgEquiv.ofAlgHom_apply]
+  simpa only [fromRight, AlgHom.comp_apply, Algebra.TensorProduct.includeRight_apply] using
+    AlgHom.congr_fun (toTensor_comp_fromRight R L M) y
 
 /-- The product-to-tensor equivalence is natural in both Lie-algebra factors. -/
 theorem prodEquivTensor_naturality
