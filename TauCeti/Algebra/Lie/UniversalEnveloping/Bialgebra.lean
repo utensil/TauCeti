@@ -7,7 +7,7 @@ module
 
 public import Mathlib.RingTheory.Bialgebra.Hom
 public import TauCeti.Algebra.Bialgebra.Primitive
-public import TauCeti.Algebra.Lie.UniversalEnveloping.Functoriality
+public import TauCeti.Algebra.Lie.UniversalEnveloping.Prod
 
 /-!
 # The bialgebra structure on a universal enveloping algebra
@@ -23,9 +23,9 @@ eventually makes the corresponding distribution algebra a Hopf algebra over `ℤ
 
 ## Main definitions
 
-* `TauCeti.UniversalEnvelopingAlgebra.instBialgebra`: the bialgebra structure. Its
-  comultiplication and counit are given inline, so that `Bialgebra.comulAlgHom` and
-  `Bialgebra.counitAlgHom` are the names for them.
+* `TauCeti.UniversalEnvelopingAlgebra.instBialgebra`: the bialgebra structure, whose
+  comultiplication reuses the product-to-tensor Lie homomorphism and whose counit is given by
+  the zero Lie homomorphism.
 * `TauCeti.UniversalEnvelopingAlgebra.mapBialgHom`: the bialgebra homomorphism induced by a Lie
   homomorphism.
 
@@ -74,35 +74,22 @@ attribute [local instance 100] LieRing.ofAssociativeRing
 /-- The standard cocommutative bialgebra structure on a universal enveloping algebra: the unique
 one for which every Lie generator is primitive.
 
-The comultiplication and the counit are supplied inline, as the algebra homomorphisms the
-universal property produces from `x ↦ x ⊗ 1 + 1 ⊗ x` and from `0`, so that `Bialgebra.comulAlgHom`
-and `Bialgebra.counitAlgHom` remain the names for them. How they act on Lie generators is recorded
-by `comulAlgHom_ι` and `counitAlgHom_ι` below. -/
+The universal property produces the comultiplication from the product-to-tensor Lie homomorphism
+precomposed with the diagonal, and the counit from `0`, so that `Bialgebra.comulAlgHom` and
+`Bialgebra.counitAlgHom` remain the names for them. How they act on Lie generators is recorded by
+`comulAlgHom_ι` and `counitAlgHom_ι` below. -/
 instance instBialgebra : Bialgebra R U :=
   Bialgebra.ofAlgHom
     (_root_.UniversalEnvelopingAlgebra.lift R
-      { toFun x :=
-          _root_.UniversalEnvelopingAlgebra.ι R x ⊗ₜ[R] 1 +
-            1 ⊗ₜ[R] _root_.UniversalEnvelopingAlgebra.ι R x
-        map_add' := by
-          intros
-          simp only [map_add, TensorProduct.add_tmul, TensorProduct.tmul_add]
-          abel
-        map_smul' := by intros; simp [TensorProduct.smul_tmul', TensorProduct.tmul_smul]
-        map_lie' := by
-          intro x y
-          simp only [LieHom.map_lie, LieRing.of_associative_ring_bracket, sub_eq_add_neg,
-            add_mul, mul_add, Algebra.TensorProduct.tmul_mul_tmul, mul_one, one_mul, neg_add_rev,
-            TensorProduct.add_tmul, TensorProduct.tmul_add, TensorProduct.neg_tmul,
-            TensorProduct.tmul_neg]
-          abel })
+      ((prodToTensorLie R L L).comp (LieHom.prod LieHom.id LieHom.id)))
     (_root_.UniversalEnvelopingAlgebra.lift R (0 : L →ₗ⁅R⁆ R))
     (by
       apply _root_.UniversalEnvelopingAlgebra.hom_ext
       apply LieHom.ext
       intro x
-      simp only [LieHom.coe_comp, Function.comp_apply, AlgHom.coe_toLieHom, AlgHom.comp_apply,
-        _root_.UniversalEnvelopingAlgebra.lift_ι_apply, LieHom.coe_mk, map_add,
+      simp only [AlgHom.coe_toLieHom, AlgHom.comp_apply,
+        _root_.UniversalEnvelopingAlgebra.lift_ι_apply, LieHom.comp_apply, LieHom.prod_apply,
+        LieHom.id_apply, prodToTensorLie_apply, map_add,
         Algebra.TensorProduct.map_tmul, map_one, TensorProduct.add_tmul, TensorProduct.tmul_add,
         AlgHom.id_apply]
       abel)
@@ -110,8 +97,9 @@ instance instBialgebra : Bialgebra R U :=
       apply _root_.UniversalEnvelopingAlgebra.hom_ext
       apply LieHom.ext
       intro x
-      simp only [LieHom.coe_comp, Function.comp_apply, AlgHom.coe_toLieHom, AlgHom.comp_apply,
-        _root_.UniversalEnvelopingAlgebra.lift_ι_apply, LieHom.coe_mk, map_add,
+      simp only [AlgHom.coe_toLieHom, AlgHom.comp_apply,
+        _root_.UniversalEnvelopingAlgebra.lift_ι_apply, LieHom.comp_apply, LieHom.prod_apply,
+        LieHom.id_apply, prodToTensorLie_apply, map_add,
         Algebra.TensorProduct.map_tmul, LieHom.zero_apply, AlgHom.id_apply, map_one,
         TensorProduct.zero_tmul, zero_add]
       rfl)
@@ -119,8 +107,9 @@ instance instBialgebra : Bialgebra R U :=
       apply _root_.UniversalEnvelopingAlgebra.hom_ext
       apply LieHom.ext
       intro x
-      simp only [LieHom.coe_comp, Function.comp_apply, AlgHom.coe_toLieHom, AlgHom.comp_apply,
-        _root_.UniversalEnvelopingAlgebra.lift_ι_apply, LieHom.coe_mk, map_add,
+      simp only [AlgHom.coe_toLieHom, AlgHom.comp_apply,
+        _root_.UniversalEnvelopingAlgebra.lift_ι_apply, LieHom.comp_apply, LieHom.prod_apply,
+        LieHom.id_apply, prodToTensorLie_apply, map_add,
         Algebra.TensorProduct.map_tmul, LieHom.zero_apply, AlgHom.id_apply, map_one,
         TensorProduct.tmul_zero, add_zero]
       rfl)
@@ -134,8 +123,12 @@ equations below go through these two lemmas rather than through unification. -/
 private theorem comulAlgHom_ι (x : L) :
     Bialgebra.comulAlgHom R U (_root_.UniversalEnvelopingAlgebra.ι R x) =
       _root_.UniversalEnvelopingAlgebra.ι R x ⊗ₜ[R] 1 +
-        1 ⊗ₜ[R] _root_.UniversalEnvelopingAlgebra.ι R x :=
-  _root_.UniversalEnvelopingAlgebra.lift_ι_apply R _ x
+        1 ⊗ₜ[R] _root_.UniversalEnvelopingAlgebra.ι R x := by
+  rw [show Bialgebra.comulAlgHom R U =
+      _root_.UniversalEnvelopingAlgebra.lift R
+        ((prodToTensorLie R L L).comp (LieHom.prod LieHom.id LieHom.id)) from rfl,
+    _root_.UniversalEnvelopingAlgebra.lift_ι_apply]
+  simp
 
 /-- The counit of `instBialgebra` kills the Lie generators. -/
 private theorem counitAlgHom_ι (x : L) :

@@ -25,6 +25,8 @@ it does not require a Poincare--Birkhoff--Witt theorem or any freeness hypothesi
 
 * `TauCeti.UniversalEnvelopingAlgebra.prodEquivTensor`: the algebra equivalence
   `U(L × M) ≃ₐ[R] U(L) ⊗[R] U(M)`.
+* `TauCeti.UniversalEnvelopingAlgebra.prodToTensorLie`: the Lie homomorphism on generators
+  that induces the forward map.
 * `TauCeti.UniversalEnvelopingAlgebra.prodEquivTensor_ι`: its value on a canonical generator.
 * `TauCeti.UniversalEnvelopingAlgebra.prodEquivTensor_map_inl` and `prodEquivTensor_map_inr`:
   its values on the canonical factor inclusions.
@@ -38,6 +40,8 @@ This supplies the direct-sum functoriality used in Layer 3 of the LieHighestWeig
 
 ## References
 
+* N. Bourbaki, *Lie Groups and Lie Algebras, Chapters 1--3*, Chapter I, §2.2,
+  "Enveloping algebra of a product of Lie algebras".
 * Mathlib's `UniversalEnvelopingAlgebra.lift` in `Mathlib.Algebra.Lie.UniversalEnveloping`.
 * Mathlib's `Algebra.TensorProduct.lift` in `Mathlib.RingTheory.TensorProduct.Maps`.
 -/
@@ -60,7 +64,9 @@ local notation "UP" => _root_.UniversalEnvelopingAlgebra R (L × M)
 
 attribute [local instance 100] LieRing.ofAssociativeRing
 
-private noncomputable def toTensorLie : (L × M) →ₗ⁅R⁆ (UL ⊗[R] UM) := by
+/-- The Lie homomorphism from a product to the tensor product of its enveloping algebras that
+sends `(x, y)` to `ι(x) ⊗ 1 + 1 ⊗ ι(y)`. -/
+def prodToTensorLie : (L × M) →ₗ⁅R⁆ (UL ⊗[R] UM) := by
   refine
     { toFun := fun x =>
         (Algebra.TensorProduct.includeLeft : UL →ₐ[R] UL ⊗[R] UM)
@@ -86,8 +92,16 @@ private noncomputable def toTensorLie : (L × M) →ₗ⁅R⁆ (UL ⊗[R] UM) :=
       TensorProduct.sub_tmul, TensorProduct.tmul_sub]
     abel
 
+@[simp]
+theorem prodToTensorLie_apply (x : L × M) :
+    prodToTensorLie R L M x =
+      (_root_.UniversalEnvelopingAlgebra.ι R x.1) ⊗ₜ[R] (1 : UM) +
+        (1 : UL) ⊗ₜ[R] (_root_.UniversalEnvelopingAlgebra.ι R x.2) := by
+  simp [prodToTensorLie, Algebra.TensorProduct.includeLeft_apply,
+    Algebra.TensorProduct.includeRight_apply]
+
 private noncomputable def toTensor : UP →ₐ[R] UL ⊗[R] UM :=
-  _root_.UniversalEnvelopingAlgebra.lift R (toTensorLie R L M)
+  _root_.UniversalEnvelopingAlgebra.lift R (prodToTensorLie R L M)
 
 private noncomputable def fromLeft : UL →ₐ[R] UP :=
   map R (LieHom.inl R L M)
@@ -102,18 +116,19 @@ private theorem from_commute (x : UL) (y : UM) :
       induction y using induction_ι with
       | ι b =>
           simp only [fromLeft, fromRight, map_ι]
-          exact commute_of_lie_eq_zero
-            (AlgHom.id R UP) (a := (a, 0)) (b := (0, b)) (by simp)
+          simpa only [AlgHom.id_apply, LieHom.inl_apply, LieHom.inr_apply] using
+            commute_of_lie_eq_zero
+              (AlgHom.id R UP) (a := (a, 0)) (b := (0, b)) (by simp)
       | algebraMap s =>
           rw [AlgHom.commutes]
-          exact (Algebra.commutes s _).symm
+          exact Algebra.commute_algebraMap_right _ _
       | add y z hy hz =>
           simpa only [map_add] using hy.add_right hz
       | mul y z hy hz =>
           simpa only [map_mul] using hy.mul_right hz
   | algebraMap r =>
       rw [AlgHom.commutes]
-      exact Algebra.commutes r _
+      exact Algebra.commute_algebraMap_left _ _
   | add x z hx hz =>
       simpa only [map_add] using hx.add_left hz
   | mul x z hx hz =>
@@ -127,8 +142,7 @@ private theorem toTensor_ι (x : L × M) :
       (_root_.UniversalEnvelopingAlgebra.ι R x.1) ⊗ₜ[R] (1 : UM) +
         (1 : UL) ⊗ₜ[R] (_root_.UniversalEnvelopingAlgebra.ι R x.2) := by
   rw [toTensor, _root_.UniversalEnvelopingAlgebra.lift_ι_apply]
-  simp [toTensorLie, Algebra.TensorProduct.includeLeft_apply,
-    Algebra.TensorProduct.includeRight_apply]
+  exact prodToTensorLie_apply R L M x
 
 private theorem toTensor_comp_fromLeft :
     (toTensor R L M).comp (fromLeft R L M) =
@@ -174,8 +188,7 @@ private theorem fromTensor_comp_toTensor :
     fromLeft, fromRight, map_ι, LieHom.inl_apply, LieHom.inr_apply,
     map_one, mul_one, one_mul, AlgHom.id_apply]
   rw [← map_add]
-  congr
-  simp
+  exact congrArg _ (by simp)
 
 /-- The universal enveloping algebra of a product of Lie algebras is the tensor product of their
 universal enveloping algebras. -/
@@ -183,25 +196,26 @@ noncomputable def prodEquivTensor : UP ≃ₐ[R] UL ⊗[R] UM :=
   AlgEquiv.ofAlgHom (toTensor R L M) (fromTensor R L M)
     (toTensor_comp_fromTensor R L M) (fromTensor_comp_toTensor R L M)
 
-/-- The product-to-tensor equivalence sends a canonical generator `(x, y)` to
-`ι(x) ⊗ 1 + 1 ⊗ ι(y)`. -/
-theorem prodEquivTensor_ι (x : L) (y : M) :
-    prodEquivTensor R L M (_root_.UniversalEnvelopingAlgebra.ι R (x, y)) =
-      (_root_.UniversalEnvelopingAlgebra.ι R x) ⊗ₜ[R] (1 : UM) +
-        (1 : UL) ⊗ₜ[R] (_root_.UniversalEnvelopingAlgebra.ι R y) := by
+/-- The product-to-tensor equivalence sends a canonical generator `x` to
+`ι(x.1) ⊗ 1 + 1 ⊗ ι(x.2)`. -/
+theorem prodEquivTensor_ι (x : L × M) :
+    prodEquivTensor R L M (_root_.UniversalEnvelopingAlgebra.ι R x) =
+      (_root_.UniversalEnvelopingAlgebra.ι R x.1) ⊗ₜ[R] (1 : UM) +
+        (1 : UL) ⊗ₜ[R] (_root_.UniversalEnvelopingAlgebra.ι R x.2) := by
   rw [prodEquivTensor, AlgEquiv.ofAlgHom_apply, toTensor_ι]
 
 /-- The `simp`-normal form of `prodEquivTensor_ι`, stated for the canonical generators as `simp`
 writes them. -/
 @[simp]
-theorem prodEquivTensor_ι' (x : L) (y : M) :
+theorem prodEquivTensor_ι' (x : L × M) :
     prodEquivTensor R L M
         (_root_.UniversalEnvelopingAlgebra.mkAlgHom R (L × M)
-          (TensorAlgebra.ι R (x, y))) =
-      (_root_.UniversalEnvelopingAlgebra.mkAlgHom R L (TensorAlgebra.ι R x)) ⊗ₜ[R] (1 : UM) +
+          (TensorAlgebra.ι R x)) =
+      (_root_.UniversalEnvelopingAlgebra.mkAlgHom R L
+          (TensorAlgebra.ι R x.1)) ⊗ₜ[R] (1 : UM) +
         (1 : UL) ⊗ₜ[R]
-          (_root_.UniversalEnvelopingAlgebra.mkAlgHom R M (TensorAlgebra.ι R y)) := by
-  simpa using prodEquivTensor_ι R L M x y
+          (_root_.UniversalEnvelopingAlgebra.mkAlgHom R M (TensorAlgebra.ι R x.2)) := by
+  simpa using prodEquivTensor_ι R L M x
 
 /-- On the left canonical factor, the product-to-tensor equivalence is tensoring with one. -/
 @[simp]
@@ -232,7 +246,7 @@ theorem prodEquivTensor_naturality
   simp only [LieHom.comp_apply, AlgHom.coe_toLieHom, AlgHom.comp_apply, map_ι,
     LieHom.prodMap_apply]
   simp only [AlgEquiv.coe_toAlgHom]
-  rw [prodEquivTensor_ι R L M x y, prodEquivTensor_ι R L' M' (f x) (g y), map_add]
+  rw [prodEquivTensor_ι R L M (x, y), prodEquivTensor_ι R L' M' (f x, g y), map_add]
   simp only [Algebra.TensorProduct.map_tmul, map_ι, map_one]
 
 /-- The inverse product-to-tensor equivalence sends a pure tensor to the product of the two
