@@ -67,7 +67,7 @@ variable {𝕂 𝕃 A B : Type*} [NontriviallyNormedField 𝕂] [CharZero 𝕂]
 variable [NontriviallyNormedField 𝕃] [CharZero 𝕃]
 variable [ContinuousSMul ℚ≥0 𝕂]
 variable [NormedRing A] [NormedAlgebra 𝕂 A]
-variable [NormedRing B] [Algebra 𝕃 B]
+variable [Ring B] [Algebra 𝕃 B] [TopologicalSpace B] [IsTopologicalRing B] [T2Space B]
 variable [CompleteSpace A]
 
 /-- Continuous ring homomorphisms commute with `logOneAdd` on the open unit ball. -/
