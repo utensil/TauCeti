@@ -24,9 +24,9 @@ exact image with `SL₂` remains downstream.
 
 ## Main results
 
-* `CliffordAlgebra.evenEquivMatrixTwoOfFinrankThree`: a chosen algebra equivalence from the even
-  Clifford algebra of a nondegenerate three-dimensional form over a separably closed field.
-* `CliffordAlgebra.evenEquivMatrixTwoOfFinrankThree_reverse`: reversal is carried to matrix
+* `CliffordAlgebra.evenEquivMatrixFinTwoOfFinrankEqThree`: a chosen algebra equivalence from the
+  even Clifford algebra of a nondegenerate three-dimensional form over a separably closed field.
+* `CliffordAlgebra.evenEquivMatrixFinTwoOfFinrankEqThree_reverse`: reversal is carried to matrix
   adjugation.
 
 ## References
@@ -188,6 +188,10 @@ private noncomputable def adjugateLinear :
       RingHom.id_apply, smul_eq_mul]
 
 omit [NeZero (2 : K)] in
+private theorem adjugateLinear_apply (A : Matrix (Fin 2) (Fin 2) K) :
+    adjugateLinear A = Matrix.adjugate A := rfl
+
+omit [NeZero (2 : K)] in
 private theorem antiMap_offDiag
     (f : Matrix (Fin 2) (Fin 2) K →ₗ[K] Matrix (Fin 2) (Fin 2) K)
     (hmul : ∀ A B, f (A * B) = f B * f A)
@@ -198,9 +202,8 @@ private theorem antiMap_offDiag
   obtain ⟨r, hr⟩ := hscalar E
   have hf : f E = r • 1 - E := eq_sub_of_add_eq (by simpa [add_comm] using hr)
   have hE2 : E * E = 0 := by
-    ext a b
-    fin_cases i <;> fin_cases j <;> fin_cases a <;> fin_cases b <;>
-      simp [E, Matrix.mul_apply, Matrix.single] at hij ⊢
+    simpa only [E] using
+      (Matrix.single_mul_single_of_ne (1 : K) i j i (Ne.symm hij) 1)
   have hsquare : f E * f E = 0 := by
     rw [← hmul, hE2, map_zero]
   rw [hf] at hsquare
@@ -276,13 +279,23 @@ private theorem antiMap_eq_adjugate
   refine (Matrix.stdBasis K (Fin 2) (Fin 2)).ext ?_
   rintro ⟨i, j⟩
   rw [Matrix.stdBasis_eq_single]
-  simpa only [adjugateLinear, LinearMap.coe_mk, AddHom.coe_mk] using
+  simpa only [adjugateLinear_apply] using
     antiMap_single_eq_adjugate f hmul hscalar i j
 
 private def reverseEven : ↥(even Q) →ₗ[K] ↥(even Q) where
   toFun x := ⟨reverse x, (reverse_mem_evenOdd_iff Q).2 x.property⟩
   map_add' x y := by ext; simp
   map_smul' r x := by ext; simp
+
+omit [NeZero (2 : K)] [FiniteDimensional K V] in
+private theorem reverseEven_apply (x : ↥(even Q)) :
+    reverseEven Q x = ⟨reverse x, (reverse_mem_evenOdd_iff Q).2 x.property⟩ :=
+  rfl
+
+omit [NeZero (2 : K)] [FiniteDimensional K V] in
+private theorem coe_reverseEven (x : ↥(even Q)) :
+    (reverseEven Q x : CliffordAlgebra Q) = reverse x :=
+  rfl
 
 private theorem scalarAdd_reverse
     (hV : Module.finrank K V = 3) (x : ↥(even Q)) :
@@ -295,9 +308,8 @@ private theorem scalarAdd_reverse
   rw [hy] at hx
   rw [← hx]
   apply Subtype.ext
-  simp only [Subalgebra.coe_add, LinearMap.coe_mk, AddHom.coe_mk, reverseEven,
-    scalarAddBivectorEven_apply, map_add, reverse.commutes, reverse_bivectorExterior,
-    Subalgebra.coe_smul, Subalgebra.coe_one]
+  simp only [Subalgebra.coe_add, coe_reverseEven, scalarAddBivectorEven_apply, map_add,
+    reverse.commutes, reverse_bivectorExterior, Subalgebra.coe_smul, Subalgebra.coe_one]
   calc
     algebraMap K (CliffordAlgebra Q) r + bivectorExterior Q q +
           (algebraMap K (CliffordAlgebra Q) r + -bivectorExterior Q q) =
@@ -324,7 +336,7 @@ private theorem reverseMatrix_mul
   rw [← map_mul]
   congr 1
   apply Subtype.ext
-  simp [reverseEven, reverse.map_mul]
+  simp only [coe_reverseEven, Subalgebra.coe_mul, map_mul, reverse.map_mul]
 
 private theorem reverseMatrix_add_self_smul
     (hV : Module.finrank K V = 3)
@@ -340,31 +352,59 @@ private theorem reverseMatrix_add_self_smul
     _ = e (r • 1) := congrArg e hr
     _ = r • 1 := by rw [map_smul, map_one]
 
-private theorem reverse_eq_adjugate
+/-- Every two-by-two matrix model of the three-dimensional even Clifford algebra carries
+Clifford reversal to matrix adjugation. -/
+theorem map_reverse_eq_adjugate_of_finrank_eq_three
     (hV : Module.finrank K V = 3)
     (e : ↥(even Q) ≃ₐ[K] Matrix (Fin 2) (Fin 2) K) (x : ↥(even Q)) :
     e ⟨reverse x, (reverse_mem_evenOdd_iff Q).2 x.property⟩ = Matrix.adjugate (e x) := by
   have hf := congrArg (fun g : Matrix (Fin 2) (Fin 2) K →ₗ[K] _ => g (e x))
     (antiMap_eq_adjugate (reverseMatrix Q e) (reverseMatrix_mul Q e)
       (reverseMatrix_add_self_smul Q hV e))
-  simpa [reverseMatrix, reverseEven, adjugateLinear] using hf
+  rw [reverseMatrix_apply, e.symm_apply_apply, adjugateLinear_apply] at hf
+  simpa only [reverseEven_apply] using hf
 
 variable [IsSepClosed K]
 
 /-- A chosen matrix model of the even Clifford algebra of a nondegenerate three-dimensional
 quadratic space over a separably closed field. -/
-noncomputable def evenEquivMatrixTwoOfFinrankThree
+noncomputable def evenEquivMatrixFinTwoOfFinrankEqThree
     (hQ : Q.Nondegenerate) (hV : Module.finrank K V = 3) :
     ↥(even Q) ≃ₐ[K] Matrix (Fin 2) (Fin 2) K :=
   (nonempty_algEquiv_even_matrix_of_finrank_eq_two_mul_add_one hQ (l := 1) (by omega)).some
 
 /-- In the chosen two-by-two matrix model, Clifford reversal is matrix adjugation. -/
 @[simp]
-theorem evenEquivMatrixTwoOfFinrankThree_reverse
+theorem evenEquivMatrixFinTwoOfFinrankEqThree_reverse
     (hQ : Q.Nondegenerate) (hV : Module.finrank K V = 3) (x : ↥(even Q)) :
-    evenEquivMatrixTwoOfFinrankThree Q hQ hV
+    evenEquivMatrixFinTwoOfFinrankEqThree Q hQ hV
         ⟨reverse x, (reverse_mem_evenOdd_iff Q).2 x.property⟩ =
-      Matrix.adjugate (evenEquivMatrixTwoOfFinrankThree Q hQ hV x) :=
-  reverse_eq_adjugate Q hV (evenEquivMatrixTwoOfFinrankThree Q hQ hV) x
+      Matrix.adjugate (evenEquivMatrixFinTwoOfFinrankEqThree Q hQ hV x) :=
+  map_reverse_eq_adjugate_of_finrank_eq_three Q hV
+    (evenEquivMatrixFinTwoOfFinrankEqThree Q hQ hV) x
+
+/-- In the chosen matrix model, determinant one is the Clifford norm-one equation. -/
+@[simp]
+theorem evenEquivMatrixFinTwoOfFinrankEqThree_det_eq_one_iff
+    (hQ : Q.Nondegenerate) (hV : Module.finrank K V = 3) (x : ↥(even Q)) :
+    Matrix.det (evenEquivMatrixFinTwoOfFinrankEqThree Q hQ hV x) = 1 ↔
+      reverse (x : CliffordAlgebra Q) * x = 1 := by
+  let e := evenEquivMatrixFinTwoOfFinrankEqThree Q hQ hV
+  constructor
+  · intro hdet
+    have hm : reverseEven Q x * x = 1 := by
+      apply e.injective
+      rw [map_mul, reverseEven_apply, map_reverse_eq_adjugate_of_finrank_eq_three Q hV e x,
+        Matrix.adjugate_mul, hdet, one_smul, map_one]
+    simpa only [Subalgebra.coe_mul, coe_reverseEven, Subalgebra.coe_one] using
+      congrArg Subtype.val hm
+  · intro hx
+    have hm : reverseEven Q x * x = 1 := by
+      apply Subtype.ext
+      simpa only [Subalgebra.coe_mul, coe_reverseEven, Subalgebra.coe_one] using hx
+    have hmap := congrArg e hm
+    rw [map_mul, reverseEven_apply, map_reverse_eq_adjugate_of_finrank_eq_three Q hV e x,
+      Matrix.adjugate_mul, map_one] at hmap
+    simpa using congr_fun (congr_fun hmap (0 : Fin 2)) (0 : Fin 2)
 
 end CliffordAlgebra
