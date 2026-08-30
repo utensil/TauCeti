@@ -138,6 +138,13 @@ theorem mapEquiv_apply (e : M ≃ₗ[R] N) (a : SymmetricAlgebra R M) :
     mapEquiv R e a = map R e.toLinearMap a := by
   rw [← AlgEquiv.toAlgHom_apply, mapEquiv_toAlgHom]
 
+/-- Applying two induced maps is the induced map of the composite. -/
+@[simp]
+theorem map_comp_map_apply (g : N →ₗ[R] P) (f : M →ₗ[R] N)
+    (a : SymmetricAlgebra R M) :
+    map R g (map R f a) = map R (g.comp f) a := by
+  rw [← AlgHom.comp_apply, map_comp_map]
+
 /-- Passing the inverse linear equivalence to symmetric algebras gives the inverse algebra
 equivalence. -/
 @[simp]
