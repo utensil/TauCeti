@@ -5,6 +5,7 @@ Authors: The Tau Ceti contributors
 -/
 module
 
+public import TauCeti.LinearAlgebra.LinearMap.EqOn
 public import Mathlib.LinearAlgebra.QuadraticForm.IsometryEquiv
 public import TauCeti.LinearAlgebra.BilinearForm.Isometry
 public import TauCeti.LinearAlgebra.Reflection
@@ -78,8 +79,8 @@ negating it and is a transvection rather than a reflection in `v ^ ⊥`.
   under hypotheses (a field of characteristic not two, a nondegenerate form, finite dimension)
   that are not assumed here, and the image of the Pin group's generating vectors under twisted
   conjugation.
-* `TauCeti.QuadraticMap.exists_reflection_list_prod_mul_eqOn_sup_span_singleton`: at most two
-  anisotropic reflections supply the one-step fixed-subspace correction used by
+* `TauCeti.QuadraticMap.exists_reflectionOrthogonal_list_prod_mul_eqOn_sup_span_singleton`: at most
+  two anisotropic reflections supply the one-step fixed-subspace correction used by
   Cartan--Dieudonne induction.
 * `TauCeti.QuadraticMap.specialOrthogonalGroup_normal`: `SO(Q)` is normal in `O(Q)`, being the
   kernel of the determinant restricted there.
@@ -617,26 +618,10 @@ section FixedSubspace
 variable {K : Type u} {V : Type v} [Field K] [AddCommGroup V] [Module K V]
 variable (Q : QuadraticForm K V) [NeZero (2 : K)]
 
-omit [NeZero (2 : K)] in
-private theorem linearEquiv_eqOn_sup_span_singleton
-    (f : V ≃ₗ[K] V) (W : Submodule K V) (x : V)
-    (hW : ∀ w ∈ W, f w = w) (hx : f x = x) :
-    ∀ y ∈ W ⊔ Submodule.span K {x}, f y = y := by
-  apply LinearMap.eqOn_sup (f := f) (g := LinearEquiv.refl K V)
-  · intro w hw
-    simpa only [LinearEquiv.refl_apply] using hW w hw
-  · apply LinearMap.eqOn_span'
-    intro y hy
-    simp only [Set.mem_singleton_iff] at hy
-    subst y
-    -- Remove the identity-equivalence coercion introduced by `eqOn_span'`.
-    change f x = x
-    exact hx
-
 /-- If `g` fixes a subspace `W` pointwise and `x` is anisotropic and orthogonal to `W`, a list of
 at most two anisotropic reflections can be multiplied into `g` so that the product fixes
 `W ⊔ K ∙ x` pointwise. -/
-theorem exists_reflection_list_prod_mul_eqOn_sup_span_singleton
+theorem exists_reflectionOrthogonal_list_prod_mul_eqOn_sup_span_singleton
     (g : QuadraticMap.orthogonalGroup Q) (W : Submodule K V)
     (hfix : ∀ w ∈ W, ((g : V ≃ₗ[K] V) w) = w)
     (x : V) [Invertible (Q x)]
@@ -677,7 +662,9 @@ theorem exists_reflection_list_prod_mul_eqOn_sup_span_singleton
         -- Normalize the singleton word product to the correcting group element.
         (show ∀ y ∈ W ⊔ Submodule.span K {x},
           ((((r * g : QuadraticMap.orthogonalGroup Q) : V ≃ₗ[K] V)) y) = y by
-            apply linearEquiv_eqOn_sup_span_singleton _ W x
+            apply TauCeti.LinearMap.eqOn_sup_span_singleton
+              (f := (r * g : QuadraticMap.orthogonalGroup Q).1.toLinearMap)
+              (g := LinearMap.id)
             · intro w hw
               -- Expose the reflection underlying the orthogonal-group product.
               change QuadraticMap.reflection Q ((g : V ≃ₗ[K] V) x - x)
@@ -706,7 +693,9 @@ theorem exists_reflection_list_prod_mul_eqOn_sup_span_singleton
         -- Normalize the two-element word product to the correcting group elements.
         (show ∀ y ∈ W ⊔ Submodule.span K {x},
           (((((r₁ * r₂) * g : QuadraticMap.orthogonalGroup Q) : V ≃ₗ[K] V)) y) = y by
-            apply linearEquiv_eqOn_sup_span_singleton _ W x
+            apply TauCeti.LinearMap.eqOn_sup_span_singleton
+              (f := ((r₁ * r₂) * g : QuadraticMap.orthogonalGroup Q).1.toLinearMap)
+              (g := LinearMap.id)
             · intro w hw
               -- Expose the two reflections underlying the orthogonal-group product.
               change QuadraticMap.reflection Q x
