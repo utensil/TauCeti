@@ -19,6 +19,8 @@ zero, eventually scale exactly under time halving, and therefore determine one g
 ## Main results
 
 * `existsUnique_eq_mulInvariantOneParameterSubgroup`: tangent-vector existence and uniqueness.
+* `contMDiff_of_continuous_oneParameterSubgroup`: every continuous one-parameter subgroup is
+  smooth in its additive real parameter.
 * `oneParameterSubgroupEquiv`: the classification equivalence between left-invariant derivations and
   continuous one-parameter subgroups.
 * `existsUnique_eq_oneParameterSubgroup`: the derivation-based existence-and-uniqueness statement.
@@ -284,6 +286,17 @@ theorem existsUnique_eq_mulInvariantOneParameterSubgroup [FiniteDimensional ℝ 
   intro w hw
   apply mulInvariantOneParameterSubgroup_injective (I := I) (G := G)
   exact hw.symm.trans hv
+
+/-- A continuous one-parameter subgroup of a finite-dimensional Lie group is smooth in its
+additive real parameter. The classification theorem supplies the canonical invariant subgroup,
+whose smoothness is already established by the integral-curve construction. -/
+theorem contMDiff_of_continuous_oneParameterSubgroup [FiniteDimensional ℝ E]
+    [LieGroup I ∞ G] [T2Space G] [BoundarylessManifold I G]
+    (φ : ContinuousMonoidHom (Multiplicative ℝ) G) :
+    ContMDiff 𝓘(ℝ, ℝ) I ∞ (fun t : ℝ => φ (Multiplicative.ofAdd t)) := by
+  obtain ⟨v, hv⟩ := exists_eq_mulInvariantOneParameterSubgroup (I := I) (G := G) φ
+  rw [hv]
+  exact contMDiff_mulInvariantOneParameterSubgroup (I := I) (G := G) v
 
 /-- Distinct left-invariant derivations generate distinct one-parameter subgroups. -/
 theorem oneParameterSubgroup_injective [FiniteDimensional ℝ E] [LieGroup I ∞ G]
