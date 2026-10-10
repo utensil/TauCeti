@@ -52,7 +52,9 @@ theorem stellarSubdivisionCoordinateMap_apply (x : ι → ℝ) (i : ι) :
   classical
   simp [stellarSubdivisionCoordinateMap]
 
-private theorem stellarSubdivisionCoordinateMap_on_equiv [Finite ι] (x : ι →₀ ℝ) :
+/-- The coordinate-space map agrees with the finitely supported stellar linear map. -/
+@[simp]
+theorem stellarSubdivisionCoordinateMap_on_equiv [Finite ι] (x : ι →₀ ℝ) :
     stellarSubdivisionCoordinateMap σ v (Finsupp.equivFunOnFinite x) =
       Finsupp.equivFunOnFinite (Finset.stellarSubdivisionLinearMap σ v x) := by
   classical
@@ -68,45 +70,13 @@ open Finset
 variable {ι : Type*}
   {K : PreAbstractSimplicialComplex ι} {σ : Finset ι} {v : ι}
 
-private theorem mem_convexHull_finsupp_single [Finite ι]
-    {τ : Finset ι} {x : ι → ℝ}
-    (hx : x ∈ convexHull ℝ ((Pi.single · (1 : ℝ)) '' (τ : Set ι))) :
-    Finsupp.equivFunOnFinite.symm x ∈
-      convexHull ℝ ((Finsupp.single · (1 : ℝ)) '' (τ : Set ι)) := by
-  have him := (Finsupp.linearEquivFunOnFinite ℝ ℝ ι).symm.toLinearMap.image_convexHull
-      ((Pi.single · (1 : ℝ)) '' (τ : Set ι))
-  have hxf' : (Finsupp.linearEquivFunOnFinite ℝ ℝ ι).symm x ∈
-      (Finsupp.linearEquivFunOnFinite ℝ ℝ ι).symm '' convexHull ℝ
-      ((Pi.single · (1 : ℝ)) '' (τ : Set ι)) := ⟨x, hx, rfl⟩
-  have hxf₀ := him ▸ hxf'
-  have himage : (Finsupp.linearEquivFunOnFinite ℝ ℝ ι).symm ''
-      ((Pi.single · (1 : ℝ)) '' (τ : Set ι)) =
-      (Finsupp.single · (1 : ℝ)) '' (τ : Set ι) := by
-    ext z
-    constructor
-    · rintro ⟨y, ⟨i, hi, rfl⟩, rfl⟩
-      have hi_single : (Finsupp.linearEquivFunOnFinite ℝ ℝ ι).symm (Pi.single i 1) =
-          Finsupp.single i 1 :=
-        Finsupp.linearEquivFunOnFinite_symm_single ℝ ℝ ι i 1
-      exact ⟨i, hi, hi_single.symm⟩
-    · rintro ⟨i, hi, rfl⟩
-      have hi_single : (Finsupp.linearEquivFunOnFinite ℝ ℝ ι).symm (Pi.single i 1) =
-          Finsupp.single i 1 :=
-        Finsupp.linearEquivFunOnFinite_symm_single ℝ ℝ ι i 1
-      exact ⟨Pi.single (i : ι) 1, ⟨i, hi, rfl⟩, hi_single⟩
-  have hxf₁ : (Finsupp.linearEquivFunOnFinite ℝ ℝ ι).symm x ∈ convexHull ℝ
-      ((Finsupp.single · (1 : ℝ)) '' (τ : Set ι)) := by
-    convert hxf₀ using 1
-    exact congrArg (convexHull ℝ) himage.symm
-  exact hxf₁
-
 private theorem coord_mem_source [Finite ι]
     {τ : (K.stellarSubdivision σ v).faces}
     {x : ι → ℝ} (hx : x ∈ convexHull ℝ ((Pi.single · (1 : ℝ)) '' (τ : Set ι))) :
     Finsupp.equivFunOnFinite.symm x ∈
       (Geometry.SimplicialComplex.onFinsupp (𝕜 := ℝ) (K.stellarSubdivision σ v)).space := by
   classical
-  have hxf₁ := mem_convexHull_finsupp_single hx
+  have hxf₁ := Finsupp.mem_convexHull_single_equivFunOnFinite hx
   rw [AbstractSimplicialComplex.mem_standardSimplex_iff] at hxf₁
   have hxf₀ := hxf₁
   rw [Geometry.SimplicialComplex.mem_space_onFinsupp_iff]
