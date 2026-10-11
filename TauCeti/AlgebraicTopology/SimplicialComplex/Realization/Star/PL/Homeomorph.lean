@@ -65,38 +65,24 @@ theorem exists_isPLOn_closedStarHomeomorph
           F' (G' (x.1.1 : κ → ℝ)) = (x.1.1 : κ → ℝ)) := by
   obtain ⟨F', hF'pl, hF'eq⟩ := exists_isPLOn_closedStarMap hKc e F hF hFpl
   obtain ⟨G', hG'pl, hG'eq⟩ := exists_isPLOn_closedStarMap hLc e.symm G hG hGpl
-  refine ⟨F', G', hF'pl, hG'pl, ?_, ?_⟩
-  · intro x
+  have h3 : ∀ x : closedStarRealization K {v},
+      F' (x.1.1 : ι → ℝ) = (closedStarHomeomorph hK hL e x).1.1 := by
+    intro x
     rw [closedStarHomeomorph_apply]
     exact hF'eq x
-  · constructor
-    · intro x
-      rw [closedStarHomeomorph_symm_apply]
-      exact hG'eq x
-    · constructor
-      · intro x
-        have hforward := hF'eq x
-        calc
-          G' (F' (x.1.1 : ι → ℝ)) =
-              G' ((closedStarMap e x).1.1 : κ → ℝ) := by rw [hforward]
-          _ = (closedStarMap e.symm (closedStarMap e x)).1.1 := hG'eq _
-          _ = (x.1.1 : ι → ℝ) := by
-            rw [closedStarMap_comp]
-            have hid : (e.symm ∘ e : geometricLink K v → geometricLink K v) = id := by
-              funext y
-              exact e.symm_apply_apply y
-            rw [hid, closedStarMap_id]
-      · intro x
-        have hbackward := hG'eq x
-        calc
-          F' (G' (x.1.1 : κ → ℝ)) =
-              F' ((closedStarMap e.symm x).1.1 : ι → ℝ) := by rw [hbackward]
-          _ = (closedStarMap e (closedStarMap e.symm x)).1.1 := hF'eq _
-          _ = (x.1.1 : κ → ℝ) := by
-            rw [closedStarMap_comp]
-            have hid : (e ∘ e.symm : geometricLink L w → geometricLink L w) = id := by
-              funext y
-              exact e.apply_symm_apply y
-            rw [hid, closedStarMap_id]
+  have h4 : ∀ x : closedStarRealization L {w},
+      G' (x.1.1 : κ → ℝ) = ((closedStarHomeomorph hK hL e).symm x).1.1 := by
+    intro x
+    rw [closedStarHomeomorph_symm_apply]
+    exact hG'eq x
+  refine ⟨F', G', hF'pl, hG'pl, h3, h4, ?_, ?_⟩
+  · intro x
+    rw [h3 x, h4]
+    exact congrArg (fun y => (y.1.1 : ι → ℝ))
+      ((closedStarHomeomorph hK hL e).symm_apply_apply x)
+  · intro x
+    rw [h4 x, h3]
+    exact congrArg (fun y => (y.1.1 : κ → ℝ))
+      ((closedStarHomeomorph hK hL e).apply_symm_apply x)
 
 end AbstractSimplicialComplex
