@@ -501,3 +501,104 @@ theorem exists_homeomorph_stellarSubdivision_with_inverse
 end
 
 end PreAbstractSimplicialComplex
+
+public section
+
+open Set TauCeti AbstractSimplicialComplex
+
+namespace PreAbstractSimplicialComplex
+
+variable {ι : Type*} [DecidableEq ι]
+  {K L : PreAbstractSimplicialComplex ι}
+
+/-! ### PL formulas along a stellar equivalence -/
+
+/-- A finite stellar equivalence identifies its weak polyhedra by maps that are piecewise linear
+in their ambient barycentric coordinates. The two `IsPLOn` statements are the coordinate formulas
+needed to transport local PL charts through a sequence of stellar moves. -/
+theorem StellarEquivalent.exists_homeomorph_isPLOn
+    (h : StellarEquivalent K L) (hfin : K.faces.Finite) :
+    ∃ e : {x : Realization (⊤ : AbstractSimplicialComplex ι) // x.1.support ∈ K} ≃ₜ
+        {x : Realization (⊤ : AbstractSimplicialComplex ι) // x.1.support ∈ L},
+      ∃ f g : (ι → ℝ) → (ι → ℝ),
+        IsPLOn f (range fun x : {x : Realization (⊤ : AbstractSimplicialComplex ι) //
+          x.1.support ∈ K} => (x.1.1 : ι → ℝ)) ∧
+        IsPLOn g (range fun x : {x : Realization (⊤ : AbstractSimplicialComplex ι) //
+          x.1.support ∈ L} => (x.1.1 : ι → ℝ)) ∧
+        (∀ x, f (x.1.1 : ι → ℝ) = (e x).1.1) ∧
+        (∀ y, g (y.1.1 : ι → ℝ) = (e.symm y).1.1) := by
+  let W : PreAbstractSimplicialComplex ι → Type _ := fun A =>
+    {x : Realization (⊤ : AbstractSimplicialComplex ι) // x.1.support ∈ A}
+  let R : PreAbstractSimplicialComplex ι → Set (ι → ℝ) := fun A =>
+    range fun x : W A => (x.1.1 : ι → ℝ)
+  let Q : PreAbstractSimplicialComplex ι → PreAbstractSimplicialComplex ι → Prop := fun A B =>
+    (A.faces.Finite ↔ B.faces.Finite) ∧
+      ∀ hfin : A.faces.Finite, ∃ e : W A ≃ₜ W B, ∃ f g : (ι → ℝ) → (ι → ℝ),
+        IsPLOn f (R A) ∧ IsPLOn g (R B) ∧
+          (∀ x, f (x.1.1 : ι → ℝ) = (e x).1.1) ∧
+          (∀ y, g (y.1.1 : ι → ℝ) = (e.symm y).1.1)
+  have hQ : Q K L := by
+    refine StellarEquivalent.induction_on h (P := Q) ?_ ?_ ?_ ?_
+    · intro A B hmove
+      dsimp [Q]
+      refine ⟨hmove.finite_faces_iff, ?_⟩
+      intro hfin
+      obtain ⟨σ, v, hσ, hv, rfl⟩ := (isStellarMove_iff.mp hmove)
+      obtain ⟨e, he, heinv⟩ := exists_homeomorph_stellarSubdivision_with_inverse
+        hσ hv hfin (le_top _) (le_top _)
+      let f : (ι → ℝ) → (ι → ℝ) :=
+        Finset.stellarSubdivisionInverseExtension σ (A.isRelLowerSet_faces hσ).1 v
+      let g : (ι → ℝ) → (ι → ℝ) := Finset.stellarSubdivisionCoordinateMap σ v
+      have hf : IsPLOn f (R A) := by
+        exact (Finset.isPiecewiseAffineOn_stellarSubdivisionInverseExtension σ
+          (A.isRelLowerSet_faces hσ).1 v).isPLOn.mono (subset_univ _)
+      have hg : IsPLOn g (R (stellarSubdivision A σ v)) := by
+        exact isPLOn_continuousAffineMap
+          (Finset.stellarSubdivisionCoordinateMap σ v).toContinuousAffineMap
+          (R (stellarSubdivision A σ v))
+      refine ⟨e.symm, f, g, hf, hg, ?_, ?_⟩
+      · intro x
+        simpa only [f] using (heinv x).symm
+      · intro y
+        simpa only [g, Homeomorph.symm_symm] using (he y).symm
+    · intro A
+      dsimp [Q]
+      refine ⟨Iff.rfl, ?_⟩
+      intro hfin
+      refine ⟨Homeomorph.refl (W A), id, id, isPLOn_id _, isPLOn_id _, ?_, ?_⟩
+      · intro x
+        rfl
+      · intro x
+        rfl
+    · intro A B ih
+      dsimp [Q] at ih ⊢
+      refine ⟨ih.1.symm, ?_⟩
+      intro hfinB
+      obtain ⟨e, f, g, hf, hg, he, heinv⟩ := ih.2 (ih.1.mpr hfinB)
+      refine ⟨e.symm, g, f, hg, hf, ?_, ?_⟩
+      · intro y
+        exact heinv y
+      · intro x
+        exact he x
+    · intro A B C hAB hBC
+      dsimp [Q] at hAB hBC ⊢
+      refine ⟨hAB.1.trans hBC.1, ?_⟩
+      intro hfin
+      have hfinB : B.faces.Finite := hAB.1.mp hfin
+      obtain ⟨e₁, f₁, g₁, hf₁, hg₁, he₁, he₁inv⟩ := hAB.2 hfin
+      obtain ⟨e₂, f₂, g₂, hf₂, hg₂, he₂, he₂inv⟩ := hBC.2 hfinB
+      have hmap₁ : R A ⊆ f₁ ⁻¹' R B := by
+        rintro _ ⟨x, rfl⟩
+        exact ⟨e₁ x, (he₁ x).symm⟩
+      have hmap₂ : R C ⊆ g₂ ⁻¹' R B := by
+        rintro _ ⟨y, rfl⟩
+        exact ⟨e₂.symm y, (he₂inv y).symm⟩
+      refine ⟨e₁.trans e₂, f₂ ∘ f₁, g₁ ∘ g₂,
+        hf₂.comp hf₁ hmap₁, hg₁.comp hg₂ hmap₂, ?_, ?_⟩
+      · intro x
+        simp only [Function.comp_apply, he₁ x, he₂ (e₁ x), Homeomorph.trans_apply]
+      · intro y
+        simp only [Function.comp_apply, he₂inv y, he₁inv (e₂.symm y), Homeomorph.symm_trans_apply]
+  simpa only [Q, W, R] using (hQ.2 hfin)
+
+end PreAbstractSimplicialComplex
