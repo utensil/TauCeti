@@ -15,13 +15,13 @@ or sphere of the same dimension. This allows local models described using disjoi
 types, such as joins, to be compared with the original complexes.
 
 The transport uses `StellarEquivalentUpToRelabeling.map`: injectively relabel the stellar
-equivalence to a standard simplex, whose image is again a standard simplex with the same
-number of vertices.
+equivalence to a standard simplex (resp. simplex boundary), whose image is again a standard
+simplex (resp. simplex boundary) with the same number of vertices.
 
 ## References
 
 * C. P. Rourke, B. J. Sanderson, *Introduction to Piecewise-Linear Topology*, Springer (1972),
-  Chapters 2 and 3 (stellar equivalence and combinatorial balls).
+  Chapters 2 and 3 (stellar equivalence, combinatorial balls and spheres).
 -/
 
 public section
@@ -46,9 +46,7 @@ theorem IsCombinatorialSphere.map (h : IsCombinatorialSphere K n) (f : ι → κ
   refine isCombinatorialSphere_iff.mpr ⟨V.image f, ?_, ?_⟩
   · rw [Finset.card_image_of_injective V hf, hV]
   · have hmap : (simplexBoundary V).map f = simplexBoundary (V.image f) := by
-      let e : ι ↪ κ := ⟨f, hf⟩
-      change (simplexBoundary V).map (e : ι → κ) = simplexBoundary (V.image (e : ι → κ))
-      exact map_simplexBoundary V e
+      simpa only [Function.Embedding.coeFn_mk] using map_simplexBoundary V ⟨f, hf⟩
     rw [← hmap]
     exact he.map f hf
 
