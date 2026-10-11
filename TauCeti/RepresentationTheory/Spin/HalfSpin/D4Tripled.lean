@@ -118,70 +118,31 @@ private noncomputable def d4SpinMinusBasis :
         TauCeti.finrank_spinMinus P (P.W_ne_bot b), Module.finrank_eq_card_basis b]
       norm_num)
 
-private noncomputable def d4SpinPlusIndex (s : {s : Finset (Fin 4) // Even s.card}) :
-    {a : Fin 24 // d4TripledSummand a = 2} :=
-  ⟨d4SpinIndex s, by simp [s.2]⟩
-
-private theorem d4SpinPlusIndex_bijective : Function.Bijective d4SpinPlusIndex := by
-  constructor
-  · intro s t h
-    exact Subtype.ext (d4SpinIndex_injective (congrArg Subtype.val h))
-  · intro a
-    let a' : {a : Fin 24 // d4TripledSummand a ≠ 0} := ⟨a, by omega⟩
-    obtain ⟨s, hs⟩ := d4SpinIndexEquiv.surjective a'
-    have hsum : d4TripledSummand (d4SpinIndex s) = 2 := by
-      rw [← coe_d4SpinIndexEquiv]
-      simpa [hs] using a.2
-    have heven : Even s.card := by
-      by_contra h
-      simp [d4TripledSummand_d4SpinIndex, h] at hsum
-    refine ⟨⟨s, heven⟩, ?_⟩
-    apply Subtype.ext
-    simpa [d4SpinPlusIndex] using congrArg Subtype.val hs
-
-private noncomputable def d4SpinMinusIndex (s : {s : Finset (Fin 4) // Odd s.card}) :
-    {a : Fin 24 // d4TripledSummand a = 1} :=
-  ⟨d4SpinIndex s, by simp [Nat.not_even_iff_odd.2 s.2]⟩
-
-private theorem d4SpinMinusIndex_bijective : Function.Bijective d4SpinMinusIndex := by
-  constructor
-  · intro s t h
-    exact Subtype.ext (d4SpinIndex_injective (congrArg Subtype.val h))
-  · intro a
-    let a' : {a : Fin 24 // d4TripledSummand a ≠ 0} := ⟨a, by omega⟩
-    obtain ⟨s, hs⟩ := d4SpinIndexEquiv.surjective a'
-    have hsum : d4TripledSummand (d4SpinIndex s) = 1 := by
-      rw [← coe_d4SpinIndexEquiv]
-      simpa [hs] using a.2
-    have hodd : Odd s.card := by
-      rw [← Nat.not_even_iff_odd]
-      intro h
-      simp [d4TripledSummand_d4SpinIndex, h] at hsum
-    refine ⟨⟨s, hodd⟩, ?_⟩
-    apply Subtype.ext
-    simpa [d4SpinMinusIndex] using congrArg Subtype.val hs
-
 /-- Even exterior subsets are exactly the indices of the `V(ϖ₄)` block in the tripled table. -/
 noncomputable def d4SpinPlusIndexEquiv :
     {s : Finset (Fin 4) // Even s.card} ≃ {a : Fin 24 // d4TripledSummand a = 2} :=
-  Equiv.ofBijective d4SpinPlusIndex d4SpinPlusIndex_bijective
+  (d4SpinIndexEquiv.subtypeEquiv fun s => by
+      simp [d4TripledSummand_d4SpinIndex]).trans
+    (Equiv.subtypeSubtypeEquivSubtype fun h => by omega)
 
 /-- Odd exterior subsets are exactly the indices of the `V(ϖ₃)` block in the tripled table. -/
 noncomputable def d4SpinMinusIndexEquiv :
     {s : Finset (Fin 4) // Odd s.card} ≃ {a : Fin 24 // d4TripledSummand a = 1} :=
-  Equiv.ofBijective d4SpinMinusIndex d4SpinMinusIndex_bijective
+  (d4SpinIndexEquiv.subtypeEquiv fun s => by
+      simp [d4TripledSummand_d4SpinIndex, Nat.not_even_iff_odd]).trans
+    (Equiv.subtypeSubtypeEquivSubtype fun h => by omega)
 
 /-- The underlying tripled-table index of an even exterior subset is `d4SpinIndex`. -/
 @[simp]
-theorem coe_d4SpinPlusIndexEquiv (s : {s : Finset (Fin 4) // Even s.card}) :
+theorem coe_d4SpinPlusIndexEquiv_apply (s : {s : Finset (Fin 4) // Even s.card}) :
     (d4SpinPlusIndexEquiv s : Fin 24) = d4SpinIndex s := by
-  simp [d4SpinPlusIndexEquiv, d4SpinPlusIndex]
+  simp [d4SpinPlusIndexEquiv]
 
 /-- The underlying tripled-table index of an odd exterior subset is `d4SpinIndex`. -/
 @[simp]
-theorem coe_d4SpinMinusIndexEquiv (s : {s : Finset (Fin 4) // Odd s.card}) :
+theorem coe_d4SpinMinusIndexEquiv_apply (s : {s : Finset (Fin 4) // Odd s.card}) :
     (d4SpinMinusIndexEquiv s : Fin 24) = d4SpinIndex s := by
-  simp [d4SpinMinusIndexEquiv, d4SpinMinusIndex]
+  simp [d4SpinMinusIndexEquiv]
 
 /-- The even half-spin module in four polarization coordinates, written in the coordinates of
 the `V(ϖ₄)` block of the tripled type-`D₄` weight table. -/
@@ -315,7 +276,7 @@ private theorem d4SpinPlusBlockEquiv_serreE_exteriorBasis (hline : P.line = ⊥)
       D4Tripled.weightTable.raisingMatrixQ i (a : Fin 24)
         (d4SpinPlusIndexEquiv s : Fin 24)
     rw [TauCeti.MinusculeWeightTable.raisingMatrixQ_apply]
-    simp only [D4Tripled.weightTable_weight, coe_d4SpinPlusIndexEquiv,
+    simp only [D4Tripled.weightTable_weight, coe_d4SpinPlusIndexEquiv_apply,
       d4TripledWeight_d4SpinIndex, hs, true_and, Pi.single_apply]
     have hindex : (a : Fin 24) = d4TripledReflection i (d4SpinIndex s) ↔
         a = d4SpinPlusIndexEquiv t := by
@@ -342,7 +303,7 @@ private theorem d4SpinPlusBlockEquiv_serreE_exteriorBasis (hline : P.line = ⊥)
     change 0 = D4Tripled.weightTable.raisingMatrixQ i (a : Fin 24)
       (d4SpinPlusIndexEquiv s : Fin 24)
     rw [TauCeti.MinusculeWeightTable.raisingMatrixQ_apply]
-    simp only [D4Tripled.weightTable_weight, coe_d4SpinPlusIndexEquiv,
+    simp only [D4Tripled.weightTable_weight, coe_d4SpinPlusIndexEquiv_apply,
       d4TripledWeight_d4SpinIndex, hs, false_and, ↓reduceIte]
 
 private theorem d4SpinPlusBlockEquiv_serreF_exteriorBasis (hline : P.line = ⊥)
@@ -374,7 +335,7 @@ private theorem d4SpinPlusBlockEquiv_serreF_exteriorBasis (hline : P.line = ⊥)
       D4Tripled.weightTable.loweringMatrixQ i (a : Fin 24)
         (d4SpinPlusIndexEquiv s : Fin 24)
     rw [TauCeti.MinusculeWeightTable.loweringMatrixQ_apply]
-    simp only [D4Tripled.weightTable_weight, coe_d4SpinPlusIndexEquiv,
+    simp only [D4Tripled.weightTable_weight, coe_d4SpinPlusIndexEquiv_apply,
       d4TripledWeight_d4SpinIndex, hs, true_and, Pi.single_apply]
     have hindex : (a : Fin 24) = d4TripledReflection i (d4SpinIndex s) ↔
         a = d4SpinPlusIndexEquiv t := by
@@ -401,7 +362,7 @@ private theorem d4SpinPlusBlockEquiv_serreF_exteriorBasis (hline : P.line = ⊥)
     change 0 = D4Tripled.weightTable.loweringMatrixQ i (a : Fin 24)
       (d4SpinPlusIndexEquiv s : Fin 24)
     rw [TauCeti.MinusculeWeightTable.loweringMatrixQ_apply]
-    simp only [D4Tripled.weightTable_weight, coe_d4SpinPlusIndexEquiv,
+    simp only [D4Tripled.weightTable_weight, coe_d4SpinPlusIndexEquiv_apply,
       d4TripledWeight_d4SpinIndex, hs, false_and, ↓reduceIte]
 
 
@@ -455,13 +416,13 @@ private theorem d4SpinPlusBlockEquiv_serreH_exteriorBasis (hline : P.line = ⊥)
     D4Tripled.weightTable.cartanGeneratorMatrixQ i (a : Fin 24)
       (d4SpinPlusIndexEquiv s : Fin 24)
   rw [TauCeti.MinusculeWeightTable.cartanGeneratorMatrixQ_apply]
-  simp only [D4Tripled.weightTable_weight, coe_d4SpinPlusIndexEquiv,
+  simp only [D4Tripled.weightTable_weight, coe_d4SpinPlusIndexEquiv_apply,
     d4TripledWeight_d4SpinIndex, Pi.single_apply]
   by_cases h : a = d4SpinPlusIndexEquiv s
   · subst a
     simp
   · have hval : (a : Fin 24) ≠ d4SpinIndex s := by
-      simpa only [← coe_d4SpinPlusIndexEquiv] using fun h' ↦ h (Subtype.ext h')
+      simpa only [← coe_d4SpinPlusIndexEquiv_apply] using fun h' ↦ h (Subtype.ext h')
     simp [h, hval]
 
 /-- The even half-spin coordinate equivalence intertwines each Cartan generator with the diagonal
@@ -522,7 +483,7 @@ private theorem d4SpinMinusBlockEquiv_serreE_exteriorBasis (hline : P.line = ⊥
       D4Tripled.weightTable.raisingMatrixQ i (a : Fin 24)
         (d4SpinMinusIndexEquiv s : Fin 24)
     rw [TauCeti.MinusculeWeightTable.raisingMatrixQ_apply]
-    simp only [D4Tripled.weightTable_weight, coe_d4SpinMinusIndexEquiv,
+    simp only [D4Tripled.weightTable_weight, coe_d4SpinMinusIndexEquiv_apply,
       d4TripledWeight_d4SpinIndex, hs, true_and, Pi.single_apply]
     have hindex : (a : Fin 24) = d4TripledReflection i (d4SpinIndex s) ↔
         a = d4SpinMinusIndexEquiv t := by
@@ -549,7 +510,7 @@ private theorem d4SpinMinusBlockEquiv_serreE_exteriorBasis (hline : P.line = ⊥
     change 0 = D4Tripled.weightTable.raisingMatrixQ i (a : Fin 24)
       (d4SpinMinusIndexEquiv s : Fin 24)
     rw [TauCeti.MinusculeWeightTable.raisingMatrixQ_apply]
-    simp only [D4Tripled.weightTable_weight, coe_d4SpinMinusIndexEquiv,
+    simp only [D4Tripled.weightTable_weight, coe_d4SpinMinusIndexEquiv_apply,
       d4TripledWeight_d4SpinIndex, hs, false_and, ↓reduceIte]
 
 private theorem d4SpinMinusBlockEquiv_serreF_exteriorBasis (hline : P.line = ⊥)
@@ -581,7 +542,7 @@ private theorem d4SpinMinusBlockEquiv_serreF_exteriorBasis (hline : P.line = ⊥
       D4Tripled.weightTable.loweringMatrixQ i (a : Fin 24)
         (d4SpinMinusIndexEquiv s : Fin 24)
     rw [TauCeti.MinusculeWeightTable.loweringMatrixQ_apply]
-    simp only [D4Tripled.weightTable_weight, coe_d4SpinMinusIndexEquiv,
+    simp only [D4Tripled.weightTable_weight, coe_d4SpinMinusIndexEquiv_apply,
       d4TripledWeight_d4SpinIndex, hs, true_and, Pi.single_apply]
     have hindex : (a : Fin 24) = d4TripledReflection i (d4SpinIndex s) ↔
         a = d4SpinMinusIndexEquiv t := by
@@ -608,7 +569,7 @@ private theorem d4SpinMinusBlockEquiv_serreF_exteriorBasis (hline : P.line = ⊥
     change 0 = D4Tripled.weightTable.loweringMatrixQ i (a : Fin 24)
       (d4SpinMinusIndexEquiv s : Fin 24)
     rw [TauCeti.MinusculeWeightTable.loweringMatrixQ_apply]
-    simp only [D4Tripled.weightTable_weight, coe_d4SpinMinusIndexEquiv,
+    simp only [D4Tripled.weightTable_weight, coe_d4SpinMinusIndexEquiv_apply,
       d4TripledWeight_d4SpinIndex, hs, false_and, ↓reduceIte]
 
 /-- The odd half-spin coordinate equivalence intertwines each positive simple-root operator with
@@ -661,13 +622,13 @@ private theorem d4SpinMinusBlockEquiv_serreH_exteriorBasis (hline : P.line = ⊥
     D4Tripled.weightTable.cartanGeneratorMatrixQ i (a : Fin 24)
       (d4SpinMinusIndexEquiv s : Fin 24)
   rw [TauCeti.MinusculeWeightTable.cartanGeneratorMatrixQ_apply]
-  simp only [D4Tripled.weightTable_weight, coe_d4SpinMinusIndexEquiv,
+  simp only [D4Tripled.weightTable_weight, coe_d4SpinMinusIndexEquiv_apply,
     d4TripledWeight_d4SpinIndex, Pi.single_apply]
   by_cases h : a = d4SpinMinusIndexEquiv s
   · subst a
     simp
   · have hval : (a : Fin 24) ≠ d4SpinIndex s := by
-      simpa only [← coe_d4SpinMinusIndexEquiv] using fun h' ↦ h (Subtype.ext h')
+      simpa only [← coe_d4SpinMinusIndexEquiv_apply] using fun h' ↦ h (Subtype.ext h')
     simp [h, hval]
 
 /-- The odd half-spin coordinate equivalence intertwines each Cartan generator with the diagonal
