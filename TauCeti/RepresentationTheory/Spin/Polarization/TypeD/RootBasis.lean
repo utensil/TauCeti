@@ -271,8 +271,10 @@ theorem typeDSpinRep_serreF_exteriorBasis (i : Fin n) (s : Finset (Fin n))
     have hsign := forkLoweringShuffleSign (hn := hn) s
     rcases Int.units_eq_one_or (TauCeti.ExteriorAlgebra.basisEraseSign p s) with hp' | hp' <;>
       rcases Int.units_eq_one_or
-        (TauCeti.ExteriorAlgebra.basisEraseSign q (s.erase p)) with hq' | hq' <;>
-      simp [p, q, hp', hq'] at hsign ⊢
+        (TauCeti.ExteriorAlgebra.basisEraseSign q (s.erase p)) with hq' | hq'
+    all_goals rw [hp', hq'] at hsign ⊢
+    all_goals norm_num at hsign
+    all_goals norm_num
 
 /-- A positive simple-root operator kills a spin basis vector unless its simple-coroot weight
 is `-1`. -/

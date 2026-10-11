@@ -240,6 +240,7 @@ private theorem basisEraseSign_eq_neg_one_pow_card_filter_lt_of_mem
 /-- The shuffle sign which moves `i` to the front of an ordered exterior monomial is `-1`
 raised to the number of indices before `i`. This formula also applies when `i ∉ s`: inserting
 `i` changes neither the erased set defining the shuffle nor the indices strictly below `i`. -/
+@[simp]
 theorem basisEraseSign_eq_neg_one_pow_card_filter_lt {I : Type w} [LinearOrder I]
     (i : I) (s : Finset I) :
     basisEraseSign i s = (-1 : ℤˣ) ^ (s.filter (fun j ↦ j < i)).card := by
@@ -363,10 +364,12 @@ theorem contractLeft_coord_basis {I : Type w} [LinearOrder I]
       exact hcontract
     · have hprodNeg : b.ExteriorAlgebra {i} * b.ExteriorAlgebra (s.erase i) =
           -b.ExteriorAlgebra s := by
-        simpa [hsign] using hprod'
+        rw [hsign] at hprod'
+        simpa using hprod'
       rw [hprodNeg, map_neg] at hcontract
       have h := congrArg Neg.neg hcontract
-      simpa [hsign] using h
+      rw [hsign]
+      simpa using h
   · exact contractLeft_coord_basis_eq_zero_of_not_mem b i s hi
 
 /-- Creating an unoccupied coordinate after contracting an occupied one replaces that
@@ -395,7 +398,11 @@ theorem ι_mul_contractLeft_coord_basis {I : Type w} [LinearOrder I]
   · rw [← basis_singleton]
     rw [mul_smul_comm]
     rw [basis_singleton_mul_basis_erase b i s hi]
-    rcases Int.units_eq_one_or (basisEraseSign i s) with hsign | hsign <;> simp [hsign]
+    let n := (s.filter fun j ↦ j < i).card
+    have hsignSq : ((-1 : ℤˣ) ^ n) * ((-1 : ℤˣ) ^ n) = 1 := by
+      rw [← pow_add, ← two_mul, pow_mul]
+      norm_num
+    rw [basisEraseSign_eq_neg_one_pow_card_filter_lt, smul_smul, hsignSq, one_smul]
   · rw [mul_zero]
 
 end TauCeti.ExteriorAlgebra

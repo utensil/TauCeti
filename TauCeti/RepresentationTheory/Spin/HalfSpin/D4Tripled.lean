@@ -230,22 +230,117 @@ theorem d4SpinMinusBlockEquiv_symm_single
   apply (P.d4SpinMinusBlockEquiv b).injective
   simp
 
-private theorem d4SpinPlusBlockEquiv_intertwines (f : Module.End ℚ (spinPlus Q P))
-    (M : Matrix {a : Fin 24 // d4TripledSummand a = 2}
-      {a : Fin 24 // d4TripledSummand a = 2} ℚ)
-    (hbasis : ∀ s, P.d4SpinPlusBlockEquiv b (f (P.d4SpinPlusExteriorBasis b s)) =
-      M *ᵥ P.d4SpinPlusBlockEquiv b (P.d4SpinPlusExteriorBasis b s))
-    (x : spinPlus Q P) :
-    P.d4SpinPlusBlockEquiv b (f x) = M *ᵥ P.d4SpinPlusBlockEquiv b x := by
+private theorem blockEquiv_intertwines {ι κ X : Type*} [Fintype κ]
+    [AddCommGroup X] [Module ℚ X] (basis : Module.Basis ι ℚ X)
+    (e : X ≃ₗ[ℚ] (κ → ℚ)) (f : Module.End ℚ X) (M : Matrix κ κ ℚ)
+    (hbasis : ∀ s, e (f (basis s)) = M *ᵥ e (basis s)) (x : X) :
+    e (f x) = M *ᵥ e x := by
+  classical
   have hmap :
-      (P.d4SpinPlusBlockEquiv b).toLinearMap.comp f =
-        (Matrix.mulVecLin M).comp (P.d4SpinPlusBlockEquiv b).toLinearMap := by
-    apply (P.d4SpinPlusBasis b).ext
+      e.toLinearMap.comp f = (Matrix.mulVecLin M).comp e.toLinearMap := by
+    apply basis.ext
     intro s
     simpa only [LinearMap.comp_apply, LinearEquiv.coe_toLinearMap,
-      Matrix.mulVecLin_apply, d4SpinPlusBasis, coe_basisOfLinearIndependentOfCardEqFinrank']
-      using hbasis s
+      Matrix.mulVecLin_apply] using hbasis s
   exact LinearMap.congr_fun hmap x
+
+private theorem d4Block_raisingMatrixQ_mulVec_single
+    {p : Finset (Fin 4) → Prop} {block : ℤ}
+    (e : {s : Finset (Fin 4) // p s} ≃ {a : Fin 24 // d4TripledSummand a = block})
+    (hcoe : ∀ s, (e s : Fin 24) = d4SpinIndex s)
+    (hreflect : ∀ i s, p s → p (typeDSpinReflection i s))
+    (i : Fin 4) (s : {s : Finset (Fin 4) // p s}) :
+    (if typeDSpinWeight s i = -1 then
+        Pi.single (e ⟨typeDSpinReflection i s, hreflect i s s.2⟩) 1 else 0) =
+      (D4Tripled.weightTable.raisingMatrixQ i).submatrix Subtype.val Subtype.val *ᵥ
+        Pi.single (e s) 1 := by
+  classical
+  by_cases hs : typeDSpinWeight s i = -1
+  · simp only [hs, ↓reduceIte]
+    rw [Matrix.mulVec_single_one]
+    ext a
+    rw [Matrix.col_apply, Matrix.submatrix_apply,
+      TauCeti.MinusculeWeightTable.raisingMatrixQ_apply]
+    simp only [D4Tripled.weightTable_weight, hcoe, d4TripledWeight_d4SpinIndex, hs,
+      true_and, Pi.single_apply]
+    have hindex : (a : Fin 24) = d4TripledReflection i (d4SpinIndex s) ↔
+        a = e ⟨typeDSpinReflection i s, hreflect i s s.2⟩ := by
+      constructor
+      · intro h
+        apply Subtype.ext
+        simpa [hcoe, d4SpinIndex_typeDSpinReflection] using h
+      · intro h
+        simp [h, hcoe, d4SpinIndex_typeDSpinReflection]
+    rw [D4Tripled.weightTable_reflection]
+    exact if_congr hindex.symm rfl rfl
+  · simp only [hs, ↓reduceIte]
+    rw [Matrix.mulVec_single_one]
+    ext a
+    rw [Matrix.col_apply, Matrix.submatrix_apply,
+      TauCeti.MinusculeWeightTable.raisingMatrixQ_apply]
+    rw [D4Tripled.weightTable_weight, hcoe, d4TripledWeight_d4SpinIndex]
+    simp only [hs, false_and, ↓reduceIte]
+    rfl
+
+private theorem d4Block_loweringMatrixQ_mulVec_single
+    {p : Finset (Fin 4) → Prop} {block : ℤ}
+    (e : {s : Finset (Fin 4) // p s} ≃ {a : Fin 24 // d4TripledSummand a = block})
+    (hcoe : ∀ s, (e s : Fin 24) = d4SpinIndex s)
+    (hreflect : ∀ i s, p s → p (typeDSpinReflection i s))
+    (i : Fin 4) (s : {s : Finset (Fin 4) // p s}) :
+    (if typeDSpinWeight s i = 1 then
+        Pi.single (e ⟨typeDSpinReflection i s, hreflect i s s.2⟩) 1 else 0) =
+      (D4Tripled.weightTable.loweringMatrixQ i).submatrix Subtype.val Subtype.val *ᵥ
+        Pi.single (e s) 1 := by
+  classical
+  by_cases hs : typeDSpinWeight s i = 1
+  · simp only [hs, ↓reduceIte]
+    rw [Matrix.mulVec_single_one]
+    ext a
+    rw [Matrix.col_apply, Matrix.submatrix_apply,
+      TauCeti.MinusculeWeightTable.loweringMatrixQ_apply]
+    simp only [D4Tripled.weightTable_weight, hcoe, d4TripledWeight_d4SpinIndex, hs,
+      true_and, Pi.single_apply]
+    have hindex : (a : Fin 24) = d4TripledReflection i (d4SpinIndex s) ↔
+        a = e ⟨typeDSpinReflection i s, hreflect i s s.2⟩ := by
+      constructor
+      · intro h
+        apply Subtype.ext
+        simpa [hcoe, d4SpinIndex_typeDSpinReflection] using h
+      · intro h
+        simp [h, hcoe, d4SpinIndex_typeDSpinReflection]
+    rw [D4Tripled.weightTable_reflection]
+    exact if_congr hindex.symm rfl rfl
+  · simp only [hs, ↓reduceIte]
+    rw [Matrix.mulVec_single_one]
+    ext a
+    rw [Matrix.col_apply, Matrix.submatrix_apply,
+      TauCeti.MinusculeWeightTable.loweringMatrixQ_apply]
+    rw [D4Tripled.weightTable_weight, hcoe, d4TripledWeight_d4SpinIndex]
+    simp only [hs, false_and, ↓reduceIte]
+    rfl
+
+private theorem d4Block_cartanGeneratorMatrixQ_mulVec_single
+    {p : Finset (Fin 4) → Prop} {block : ℤ}
+    (e : {s : Finset (Fin 4) // p s} ≃ {a : Fin 24 // d4TripledSummand a = block})
+    (hcoe : ∀ s, (e s : Fin 24) = d4SpinIndex s)
+    (i : Fin 4) (s : {s : Finset (Fin 4) // p s}) :
+    (typeDSpinWeight s i : ℚ) • Pi.single (e s) 1 =
+      (D4Tripled.weightTable.cartanGeneratorMatrixQ i).submatrix Subtype.val Subtype.val *ᵥ
+        Pi.single (e s) 1 := by
+  classical
+  rw [Matrix.mulVec_single_one]
+  ext a
+  rw [Matrix.col_apply, Matrix.submatrix_apply,
+    TauCeti.MinusculeWeightTable.cartanGeneratorMatrixQ_apply]
+  simp only [D4Tripled.weightTable_weight, hcoe, d4TripledWeight_d4SpinIndex]
+  by_cases h : a = e s
+  · subst a
+    rw [hcoe]
+    simp
+  · have hval : (a : Fin 24) ≠ d4SpinIndex s := by
+      simpa only [← hcoe] using fun h' ↦ h (Subtype.ext h')
+    simp [h, hval]
 
 private theorem d4SpinPlusBlockEquiv_serreE_exteriorBasis (hline : P.line = ⊥)
     (i : Fin 4) (s : {s : Finset (Fin 4) // Even s.card}) :
@@ -256,38 +351,24 @@ private theorem d4SpinPlusBlockEquiv_serreE_exteriorBasis (hline : P.line = ⊥)
         P.d4SpinPlusBlockEquiv b (P.d4SpinPlusExteriorBasis b s) := by
   classical
   by_cases hs : typeDSpinWeight s i = -1
-  · let t : {s : Finset (Fin 4) // Even s.card} :=
-      ⟨typeDSpinReflection i s, (even_card_typeDSpinReflection_iff (by omega) i s).2 s.2⟩
-    have hact :
+  · have hact :
         P.typeDSpinPlusLieRep b hline (TypeDStd.rootGenerator 4 (by omega) (.inl i))
-            (P.d4SpinPlusExteriorBasis b s) = P.d4SpinPlusExteriorBasis b t := by
+            (P.d4SpinPlusExteriorBasis b s) =
+          P.d4SpinPlusExteriorBasis b
+            ⟨typeDSpinReflection i s,
+              (even_card_typeDSpinReflection_iff (by omega) i s).2 s.2⟩ := by
       apply Subtype.ext
       simp only [coe_typeDSpinPlusLieRep_apply, typeDSpinLieRep_apply,
         P.typeDQuadraticEquiv_rootGenerator b (by omega) hline (.inl i)]
       rw [← P.typeDSpinRep_serreE_eq_spinAction b (by omega) i]
-      simpa [d4SpinPlusExteriorBasis, t] using
+      simpa [d4SpinPlusExteriorBasis] using
         P.typeDSpinRep_serreE_exteriorBasis b (by omega) i s hs
     rw [hact, P.d4SpinPlusBlockEquiv_exteriorBasis,
-      P.d4SpinPlusBlockEquiv_exteriorBasis, Matrix.mulVec_single_one]
-    ext a
-    -- Evaluate the transported basis vector and the raising matrix at one block coordinate.
-    change (Pi.single (d4SpinPlusIndexEquiv t) (1 : ℚ) :
-        {a : Fin 24 // d4TripledSummand a = 2} → ℚ) a =
-      D4Tripled.weightTable.raisingMatrixQ i (a : Fin 24)
-        (d4SpinPlusIndexEquiv s : Fin 24)
-    rw [TauCeti.MinusculeWeightTable.raisingMatrixQ_apply]
-    simp only [D4Tripled.weightTable_weight, coe_d4SpinPlusIndexEquiv_apply,
-      d4TripledWeight_d4SpinIndex, hs, true_and, Pi.single_apply]
-    have hindex : (a : Fin 24) = d4TripledReflection i (d4SpinIndex s) ↔
-        a = d4SpinPlusIndexEquiv t := by
-      constructor
-      · intro h
-        apply Subtype.ext
-        simpa [t, d4SpinIndex_typeDSpinReflection] using h
-      · intro h
-        simp [h, t, d4SpinIndex_typeDSpinReflection]
-    rw [D4Tripled.weightTable_reflection]
-    exact if_congr hindex.symm rfl rfl
+      P.d4SpinPlusBlockEquiv_exteriorBasis]
+    simpa only [hs, ↓reduceIte] using
+      d4Block_raisingMatrixQ_mulVec_single d4SpinPlusIndexEquiv
+      coe_d4SpinPlusIndexEquiv_apply
+      (fun i s hs ↦ (even_card_typeDSpinReflection_iff (n := 4) (by omega) i s).2 hs) i s
   · have hact :
         P.typeDSpinPlusLieRep b hline (TypeDStd.rootGenerator 4 (by omega) (.inl i))
             (P.d4SpinPlusExteriorBasis b s) = 0 := by
@@ -297,14 +378,11 @@ private theorem d4SpinPlusBlockEquiv_serreE_exteriorBasis (hline : P.line = ⊥)
       rw [← P.typeDSpinRep_serreE_eq_spinAction b (by omega) i]
       simpa [d4SpinPlusExteriorBasis] using
         P.typeDSpinRep_serreE_exteriorBasis_eq_zero b (by omega) i s hs
-    rw [hact, map_zero, P.d4SpinPlusBlockEquiv_exteriorBasis, Matrix.mulVec_single_one]
-    ext a
-    -- Evaluate the zero vector and the raising matrix at one block coordinate.
-    change 0 = D4Tripled.weightTable.raisingMatrixQ i (a : Fin 24)
-      (d4SpinPlusIndexEquiv s : Fin 24)
-    rw [TauCeti.MinusculeWeightTable.raisingMatrixQ_apply]
-    simp only [D4Tripled.weightTable_weight, coe_d4SpinPlusIndexEquiv_apply,
-      d4TripledWeight_d4SpinIndex, hs, false_and, ↓reduceIte]
+    rw [hact, map_zero, P.d4SpinPlusBlockEquiv_exteriorBasis]
+    simpa only [hs, ↓reduceIte] using
+      d4Block_raisingMatrixQ_mulVec_single d4SpinPlusIndexEquiv
+      coe_d4SpinPlusIndexEquiv_apply
+      (fun i s hs ↦ (even_card_typeDSpinReflection_iff (n := 4) (by omega) i s).2 hs) i s
 
 private theorem d4SpinPlusBlockEquiv_serreF_exteriorBasis (hline : P.line = ⊥)
     (i : Fin 4) (s : {s : Finset (Fin 4) // Even s.card}) :
@@ -315,38 +393,24 @@ private theorem d4SpinPlusBlockEquiv_serreF_exteriorBasis (hline : P.line = ⊥)
         P.d4SpinPlusBlockEquiv b (P.d4SpinPlusExteriorBasis b s) := by
   classical
   by_cases hs : typeDSpinWeight s i = 1
-  · let t : {s : Finset (Fin 4) // Even s.card} :=
-      ⟨typeDSpinReflection i s, (even_card_typeDSpinReflection_iff (by omega) i s).2 s.2⟩
-    have hact :
+  · have hact :
         P.typeDSpinPlusLieRep b hline (TypeDStd.rootGenerator 4 (by omega) (.inr i))
-            (P.d4SpinPlusExteriorBasis b s) = P.d4SpinPlusExteriorBasis b t := by
+            (P.d4SpinPlusExteriorBasis b s) =
+          P.d4SpinPlusExteriorBasis b
+            ⟨typeDSpinReflection i s,
+              (even_card_typeDSpinReflection_iff (by omega) i s).2 s.2⟩ := by
       apply Subtype.ext
       simp only [coe_typeDSpinPlusLieRep_apply, typeDSpinLieRep_apply,
         P.typeDQuadraticEquiv_rootGenerator b (by omega) hline (.inr i)]
       rw [← P.typeDSpinRep_serreF_eq_spinAction b (by omega) i]
-      simpa [d4SpinPlusExteriorBasis, t] using
+      simpa [d4SpinPlusExteriorBasis] using
         P.typeDSpinRep_serreF_exteriorBasis b (by omega) i s hs
     rw [hact, P.d4SpinPlusBlockEquiv_exteriorBasis,
-      P.d4SpinPlusBlockEquiv_exteriorBasis, Matrix.mulVec_single_one]
-    ext a
-    -- Evaluate the transported basis vector and the lowering matrix at one block coordinate.
-    change (Pi.single (d4SpinPlusIndexEquiv t) (1 : ℚ) :
-        {a : Fin 24 // d4TripledSummand a = 2} → ℚ) a =
-      D4Tripled.weightTable.loweringMatrixQ i (a : Fin 24)
-        (d4SpinPlusIndexEquiv s : Fin 24)
-    rw [TauCeti.MinusculeWeightTable.loweringMatrixQ_apply]
-    simp only [D4Tripled.weightTable_weight, coe_d4SpinPlusIndexEquiv_apply,
-      d4TripledWeight_d4SpinIndex, hs, true_and, Pi.single_apply]
-    have hindex : (a : Fin 24) = d4TripledReflection i (d4SpinIndex s) ↔
-        a = d4SpinPlusIndexEquiv t := by
-      constructor
-      · intro h
-        apply Subtype.ext
-        simpa [t, d4SpinIndex_typeDSpinReflection] using h
-      · intro h
-        simp [h, t, d4SpinIndex_typeDSpinReflection]
-    rw [D4Tripled.weightTable_reflection]
-    exact if_congr hindex.symm rfl rfl
+      P.d4SpinPlusBlockEquiv_exteriorBasis]
+    simpa only [hs, ↓reduceIte] using
+      d4Block_loweringMatrixQ_mulVec_single d4SpinPlusIndexEquiv
+      coe_d4SpinPlusIndexEquiv_apply
+      (fun i s hs ↦ (even_card_typeDSpinReflection_iff (n := 4) (by omega) i s).2 hs) i s
   · have hact :
         P.typeDSpinPlusLieRep b hline (TypeDStd.rootGenerator 4 (by omega) (.inr i))
             (P.d4SpinPlusExteriorBasis b s) = 0 := by
@@ -356,14 +420,11 @@ private theorem d4SpinPlusBlockEquiv_serreF_exteriorBasis (hline : P.line = ⊥)
       rw [← P.typeDSpinRep_serreF_eq_spinAction b (by omega) i]
       simpa [d4SpinPlusExteriorBasis] using
         P.typeDSpinRep_serreF_exteriorBasis_eq_zero b (by omega) i s hs
-    rw [hact, map_zero, P.d4SpinPlusBlockEquiv_exteriorBasis, Matrix.mulVec_single_one]
-    ext a
-    -- Evaluate the zero vector and the lowering matrix at one block coordinate.
-    change 0 = D4Tripled.weightTable.loweringMatrixQ i (a : Fin 24)
-      (d4SpinPlusIndexEquiv s : Fin 24)
-    rw [TauCeti.MinusculeWeightTable.loweringMatrixQ_apply]
-    simp only [D4Tripled.weightTable_weight, coe_d4SpinPlusIndexEquiv_apply,
-      d4TripledWeight_d4SpinIndex, hs, false_and, ↓reduceIte]
+    rw [hact, map_zero, P.d4SpinPlusBlockEquiv_exteriorBasis]
+    simpa only [hs, ↓reduceIte] using
+      d4Block_loweringMatrixQ_mulVec_single d4SpinPlusIndexEquiv
+      coe_d4SpinPlusIndexEquiv_apply
+      (fun i s hs ↦ (even_card_typeDSpinReflection_iff (n := 4) (by omega) i s).2 hs) i s
 
 
 /-- The even half-spin coordinate equivalence intertwines each positive simple-root operator with
@@ -375,8 +436,10 @@ theorem d4SpinPlusBlockEquiv_serreE (hline : P.line = ⊥) (i : Fin 4)
         (P.typeDSpinPlusLieRep b hline (TypeDStd.rootGenerator 4 (by omega) (.inl i)) x) =
       (D4Tripled.weightTable.raisingMatrixQ i).submatrix Subtype.val Subtype.val *ᵥ
         P.d4SpinPlusBlockEquiv b x := by
-  apply P.d4SpinPlusBlockEquiv_intertwines b
-  exact P.d4SpinPlusBlockEquiv_serreE_exteriorBasis b hline i
+  apply blockEquiv_intertwines (P.d4SpinPlusBasis b) (P.d4SpinPlusBlockEquiv b)
+  intro s
+  simpa only [d4SpinPlusBasis, coe_basisOfLinearIndependentOfCardEqFinrank'] using
+    P.d4SpinPlusBlockEquiv_serreE_exteriorBasis b hline i s
 
 /-- The even half-spin coordinate equivalence intertwines each negative simple-root operator with
 the lowering matrix on the `V(ϖ₄)` block of the tripled table. -/
@@ -387,8 +450,10 @@ theorem d4SpinPlusBlockEquiv_serreF (hline : P.line = ⊥) (i : Fin 4)
         (P.typeDSpinPlusLieRep b hline (TypeDStd.rootGenerator 4 (by omega) (.inr i)) x) =
       (D4Tripled.weightTable.loweringMatrixQ i).submatrix Subtype.val Subtype.val *ᵥ
         P.d4SpinPlusBlockEquiv b x := by
-  apply P.d4SpinPlusBlockEquiv_intertwines b
-  exact P.d4SpinPlusBlockEquiv_serreF_exteriorBasis b hline i
+  apply blockEquiv_intertwines (P.d4SpinPlusBasis b) (P.d4SpinPlusBlockEquiv b)
+  intro s
+  simpa only [d4SpinPlusBasis, coe_basisOfLinearIndependentOfCardEqFinrank'] using
+    P.d4SpinPlusBlockEquiv_serreF_exteriorBasis b hline i s
 
 private theorem d4SpinPlusBlockEquiv_serreH_exteriorBasis (hline : P.line = ⊥)
     (i : Fin 4) (s : {s : Finset (Fin 4) // Even s.card}) :
@@ -407,23 +472,10 @@ private theorem d4SpinPlusBlockEquiv_serreH_exteriorBasis (hline : P.line = ⊥)
       P.typeDQuadraticEquiv_cartanGenerator b (by omega) hline i, SetLike.val_smul]
     simpa [d4SpinPlusExteriorBasis] using
       P.spinAction_typeDSimpleCorootBivector_basis b (by omega) i s
-  rw [hact, map_smul, P.d4SpinPlusBlockEquiv_exteriorBasis, Matrix.mulVec_single_one]
-  ext a
-  -- Evaluate scalar multiplication and the diagonal matrix at one block coordinate.
-  change (typeDSpinWeight s i : ℚ) *
-      ((Pi.single (d4SpinPlusIndexEquiv s) (1 : ℚ) :
-        {a : Fin 24 // d4TripledSummand a = 2} → ℚ) a) =
-    D4Tripled.weightTable.cartanGeneratorMatrixQ i (a : Fin 24)
-      (d4SpinPlusIndexEquiv s : Fin 24)
-  rw [TauCeti.MinusculeWeightTable.cartanGeneratorMatrixQ_apply]
-  simp only [D4Tripled.weightTable_weight, coe_d4SpinPlusIndexEquiv_apply,
-    d4TripledWeight_d4SpinIndex, Pi.single_apply]
-  by_cases h : a = d4SpinPlusIndexEquiv s
-  · subst a
-    simp
-  · have hval : (a : Fin 24) ≠ d4SpinIndex s := by
-      simpa only [← coe_d4SpinPlusIndexEquiv_apply] using fun h' ↦ h (Subtype.ext h')
-    simp [h, hval]
+  rw [hact, map_smul, P.d4SpinPlusBlockEquiv_exteriorBasis]
+  exact
+    d4Block_cartanGeneratorMatrixQ_mulVec_single d4SpinPlusIndexEquiv
+      coe_d4SpinPlusIndexEquiv_apply i s
 
 /-- The even half-spin coordinate equivalence intertwines each Cartan generator with the diagonal
 weight matrix on the `V(ϖ₄)` block of the tripled table. -/
@@ -434,25 +486,10 @@ theorem d4SpinPlusBlockEquiv_serreH (hline : P.line = ⊥) (i : Fin 4)
         (P.typeDSpinPlusLieRep b hline (TypeDStd.cartanGenerator 4 (by omega) i) x) =
       (D4Tripled.weightTable.cartanGeneratorMatrixQ i).submatrix Subtype.val Subtype.val *ᵥ
         P.d4SpinPlusBlockEquiv b x := by
-  apply P.d4SpinPlusBlockEquiv_intertwines b
-  exact P.d4SpinPlusBlockEquiv_serreH_exteriorBasis b hline i
-
-private theorem d4SpinMinusBlockEquiv_intertwines (f : Module.End ℚ (spinMinus Q P))
-    (M : Matrix {a : Fin 24 // d4TripledSummand a = 1}
-      {a : Fin 24 // d4TripledSummand a = 1} ℚ)
-    (hbasis : ∀ s, P.d4SpinMinusBlockEquiv b (f (P.d4SpinMinusExteriorBasis b s)) =
-      M *ᵥ P.d4SpinMinusBlockEquiv b (P.d4SpinMinusExteriorBasis b s))
-    (x : spinMinus Q P) :
-    P.d4SpinMinusBlockEquiv b (f x) = M *ᵥ P.d4SpinMinusBlockEquiv b x := by
-  have hmap :
-      (P.d4SpinMinusBlockEquiv b).toLinearMap.comp f =
-        (Matrix.mulVecLin M).comp (P.d4SpinMinusBlockEquiv b).toLinearMap := by
-    apply (P.d4SpinMinusBasis b).ext
-    intro s
-    simpa only [LinearMap.comp_apply, LinearEquiv.coe_toLinearMap,
-      Matrix.mulVecLin_apply, d4SpinMinusBasis, coe_basisOfLinearIndependentOfCardEqFinrank']
-      using hbasis s
-  exact LinearMap.congr_fun hmap x
+  apply blockEquiv_intertwines (P.d4SpinPlusBasis b) (P.d4SpinPlusBlockEquiv b)
+  intro s
+  simpa only [d4SpinPlusBasis, coe_basisOfLinearIndependentOfCardEqFinrank'] using
+    P.d4SpinPlusBlockEquiv_serreH_exteriorBasis b hline i s
 
 private theorem d4SpinMinusBlockEquiv_serreE_exteriorBasis (hline : P.line = ⊥)
     (i : Fin 4) (s : {s : Finset (Fin 4) // Odd s.card}) :
@@ -463,38 +500,23 @@ private theorem d4SpinMinusBlockEquiv_serreE_exteriorBasis (hline : P.line = ⊥
         P.d4SpinMinusBlockEquiv b (P.d4SpinMinusExteriorBasis b s) := by
   classical
   by_cases hs : typeDSpinWeight s i = -1
-  · let t : {s : Finset (Fin 4) // Odd s.card} :=
-      ⟨typeDSpinReflection i s, (odd_card_typeDSpinReflection_iff i s).2 s.2⟩
-    have hact :
+  · have hact :
         P.typeDSpinMinusLieRep b hline (TypeDStd.rootGenerator 4 (by omega) (.inl i))
-            (P.d4SpinMinusExteriorBasis b s) = P.d4SpinMinusExteriorBasis b t := by
+            (P.d4SpinMinusExteriorBasis b s) =
+          P.d4SpinMinusExteriorBasis b
+            ⟨typeDSpinReflection i s, (odd_card_typeDSpinReflection_iff i s).2 s.2⟩ := by
       apply Subtype.ext
       simp only [coe_typeDSpinMinusLieRep_apply, typeDSpinLieRep_apply,
         P.typeDQuadraticEquiv_rootGenerator b (by omega) hline (.inl i)]
       rw [← P.typeDSpinRep_serreE_eq_spinAction b (by omega) i]
-      simpa [d4SpinMinusExteriorBasis, t] using
+      simpa [d4SpinMinusExteriorBasis] using
         P.typeDSpinRep_serreE_exteriorBasis b (by omega) i s hs
     rw [hact, P.d4SpinMinusBlockEquiv_exteriorBasis,
-      P.d4SpinMinusBlockEquiv_exteriorBasis, Matrix.mulVec_single_one]
-    ext a
-    -- Evaluate the transported basis vector and the raising matrix at one block coordinate.
-    change (Pi.single (d4SpinMinusIndexEquiv t) (1 : ℚ) :
-        {a : Fin 24 // d4TripledSummand a = 1} → ℚ) a =
-      D4Tripled.weightTable.raisingMatrixQ i (a : Fin 24)
-        (d4SpinMinusIndexEquiv s : Fin 24)
-    rw [TauCeti.MinusculeWeightTable.raisingMatrixQ_apply]
-    simp only [D4Tripled.weightTable_weight, coe_d4SpinMinusIndexEquiv_apply,
-      d4TripledWeight_d4SpinIndex, hs, true_and, Pi.single_apply]
-    have hindex : (a : Fin 24) = d4TripledReflection i (d4SpinIndex s) ↔
-        a = d4SpinMinusIndexEquiv t := by
-      constructor
-      · intro h
-        apply Subtype.ext
-        simpa [t, d4SpinIndex_typeDSpinReflection] using h
-      · intro h
-        simp [h, t, d4SpinIndex_typeDSpinReflection]
-    rw [D4Tripled.weightTable_reflection]
-    exact if_congr hindex.symm rfl rfl
+      P.d4SpinMinusBlockEquiv_exteriorBasis]
+    simpa only [hs, ↓reduceIte] using
+      d4Block_raisingMatrixQ_mulVec_single d4SpinMinusIndexEquiv
+      coe_d4SpinMinusIndexEquiv_apply
+      (fun i s hs ↦ (odd_card_typeDSpinReflection_iff i s).2 hs) i s
   · have hact :
         P.typeDSpinMinusLieRep b hline (TypeDStd.rootGenerator 4 (by omega) (.inl i))
             (P.d4SpinMinusExteriorBasis b s) = 0 := by
@@ -504,14 +526,11 @@ private theorem d4SpinMinusBlockEquiv_serreE_exteriorBasis (hline : P.line = ⊥
       rw [← P.typeDSpinRep_serreE_eq_spinAction b (by omega) i]
       simpa [d4SpinMinusExteriorBasis] using
         P.typeDSpinRep_serreE_exteriorBasis_eq_zero b (by omega) i s hs
-    rw [hact, map_zero, P.d4SpinMinusBlockEquiv_exteriorBasis, Matrix.mulVec_single_one]
-    ext a
-    -- Evaluate the zero vector and the raising matrix at one block coordinate.
-    change 0 = D4Tripled.weightTable.raisingMatrixQ i (a : Fin 24)
-      (d4SpinMinusIndexEquiv s : Fin 24)
-    rw [TauCeti.MinusculeWeightTable.raisingMatrixQ_apply]
-    simp only [D4Tripled.weightTable_weight, coe_d4SpinMinusIndexEquiv_apply,
-      d4TripledWeight_d4SpinIndex, hs, false_and, ↓reduceIte]
+    rw [hact, map_zero, P.d4SpinMinusBlockEquiv_exteriorBasis]
+    simpa only [hs, ↓reduceIte] using
+      d4Block_raisingMatrixQ_mulVec_single d4SpinMinusIndexEquiv
+      coe_d4SpinMinusIndexEquiv_apply
+      (fun i s hs ↦ (odd_card_typeDSpinReflection_iff i s).2 hs) i s
 
 private theorem d4SpinMinusBlockEquiv_serreF_exteriorBasis (hline : P.line = ⊥)
     (i : Fin 4) (s : {s : Finset (Fin 4) // Odd s.card}) :
@@ -522,38 +541,23 @@ private theorem d4SpinMinusBlockEquiv_serreF_exteriorBasis (hline : P.line = ⊥
         P.d4SpinMinusBlockEquiv b (P.d4SpinMinusExteriorBasis b s) := by
   classical
   by_cases hs : typeDSpinWeight s i = 1
-  · let t : {s : Finset (Fin 4) // Odd s.card} :=
-      ⟨typeDSpinReflection i s, (odd_card_typeDSpinReflection_iff i s).2 s.2⟩
-    have hact :
+  · have hact :
         P.typeDSpinMinusLieRep b hline (TypeDStd.rootGenerator 4 (by omega) (.inr i))
-            (P.d4SpinMinusExteriorBasis b s) = P.d4SpinMinusExteriorBasis b t := by
+            (P.d4SpinMinusExteriorBasis b s) =
+          P.d4SpinMinusExteriorBasis b
+            ⟨typeDSpinReflection i s, (odd_card_typeDSpinReflection_iff i s).2 s.2⟩ := by
       apply Subtype.ext
       simp only [coe_typeDSpinMinusLieRep_apply, typeDSpinLieRep_apply,
         P.typeDQuadraticEquiv_rootGenerator b (by omega) hline (.inr i)]
       rw [← P.typeDSpinRep_serreF_eq_spinAction b (by omega) i]
-      simpa [d4SpinMinusExteriorBasis, t] using
+      simpa [d4SpinMinusExteriorBasis] using
         P.typeDSpinRep_serreF_exteriorBasis b (by omega) i s hs
     rw [hact, P.d4SpinMinusBlockEquiv_exteriorBasis,
-      P.d4SpinMinusBlockEquiv_exteriorBasis, Matrix.mulVec_single_one]
-    ext a
-    -- Evaluate the transported basis vector and the lowering matrix at one block coordinate.
-    change (Pi.single (d4SpinMinusIndexEquiv t) (1 : ℚ) :
-        {a : Fin 24 // d4TripledSummand a = 1} → ℚ) a =
-      D4Tripled.weightTable.loweringMatrixQ i (a : Fin 24)
-        (d4SpinMinusIndexEquiv s : Fin 24)
-    rw [TauCeti.MinusculeWeightTable.loweringMatrixQ_apply]
-    simp only [D4Tripled.weightTable_weight, coe_d4SpinMinusIndexEquiv_apply,
-      d4TripledWeight_d4SpinIndex, hs, true_and, Pi.single_apply]
-    have hindex : (a : Fin 24) = d4TripledReflection i (d4SpinIndex s) ↔
-        a = d4SpinMinusIndexEquiv t := by
-      constructor
-      · intro h
-        apply Subtype.ext
-        simpa [t, d4SpinIndex_typeDSpinReflection] using h
-      · intro h
-        simp [h, t, d4SpinIndex_typeDSpinReflection]
-    rw [D4Tripled.weightTable_reflection]
-    exact if_congr hindex.symm rfl rfl
+      P.d4SpinMinusBlockEquiv_exteriorBasis]
+    simpa only [hs, ↓reduceIte] using
+      d4Block_loweringMatrixQ_mulVec_single d4SpinMinusIndexEquiv
+      coe_d4SpinMinusIndexEquiv_apply
+      (fun i s hs ↦ (odd_card_typeDSpinReflection_iff i s).2 hs) i s
   · have hact :
         P.typeDSpinMinusLieRep b hline (TypeDStd.rootGenerator 4 (by omega) (.inr i))
             (P.d4SpinMinusExteriorBasis b s) = 0 := by
@@ -563,14 +567,11 @@ private theorem d4SpinMinusBlockEquiv_serreF_exteriorBasis (hline : P.line = ⊥
       rw [← P.typeDSpinRep_serreF_eq_spinAction b (by omega) i]
       simpa [d4SpinMinusExteriorBasis] using
         P.typeDSpinRep_serreF_exteriorBasis_eq_zero b (by omega) i s hs
-    rw [hact, map_zero, P.d4SpinMinusBlockEquiv_exteriorBasis, Matrix.mulVec_single_one]
-    ext a
-    -- Evaluate the zero vector and the lowering matrix at one block coordinate.
-    change 0 = D4Tripled.weightTable.loweringMatrixQ i (a : Fin 24)
-      (d4SpinMinusIndexEquiv s : Fin 24)
-    rw [TauCeti.MinusculeWeightTable.loweringMatrixQ_apply]
-    simp only [D4Tripled.weightTable_weight, coe_d4SpinMinusIndexEquiv_apply,
-      d4TripledWeight_d4SpinIndex, hs, false_and, ↓reduceIte]
+    rw [hact, map_zero, P.d4SpinMinusBlockEquiv_exteriorBasis]
+    simpa only [hs, ↓reduceIte] using
+      d4Block_loweringMatrixQ_mulVec_single d4SpinMinusIndexEquiv
+      coe_d4SpinMinusIndexEquiv_apply
+      (fun i s hs ↦ (odd_card_typeDSpinReflection_iff i s).2 hs) i s
 
 /-- The odd half-spin coordinate equivalence intertwines each positive simple-root operator with
 the raising matrix on the `V(ϖ₃)` block of the tripled table. -/
@@ -581,8 +582,10 @@ theorem d4SpinMinusBlockEquiv_serreE (hline : P.line = ⊥) (i : Fin 4)
         (P.typeDSpinMinusLieRep b hline (TypeDStd.rootGenerator 4 (by omega) (.inl i)) x) =
       (D4Tripled.weightTable.raisingMatrixQ i).submatrix Subtype.val Subtype.val *ᵥ
         P.d4SpinMinusBlockEquiv b x := by
-  apply P.d4SpinMinusBlockEquiv_intertwines b
-  exact P.d4SpinMinusBlockEquiv_serreE_exteriorBasis b hline i
+  apply blockEquiv_intertwines (P.d4SpinMinusBasis b) (P.d4SpinMinusBlockEquiv b)
+  intro s
+  simpa only [d4SpinMinusBasis, coe_basisOfLinearIndependentOfCardEqFinrank'] using
+    P.d4SpinMinusBlockEquiv_serreE_exteriorBasis b hline i s
 
 /-- The odd half-spin coordinate equivalence intertwines each negative simple-root operator with
 the lowering matrix on the `V(ϖ₃)` block of the tripled table. -/
@@ -593,8 +596,10 @@ theorem d4SpinMinusBlockEquiv_serreF (hline : P.line = ⊥) (i : Fin 4)
         (P.typeDSpinMinusLieRep b hline (TypeDStd.rootGenerator 4 (by omega) (.inr i)) x) =
       (D4Tripled.weightTable.loweringMatrixQ i).submatrix Subtype.val Subtype.val *ᵥ
         P.d4SpinMinusBlockEquiv b x := by
-  apply P.d4SpinMinusBlockEquiv_intertwines b
-  exact P.d4SpinMinusBlockEquiv_serreF_exteriorBasis b hline i
+  apply blockEquiv_intertwines (P.d4SpinMinusBasis b) (P.d4SpinMinusBlockEquiv b)
+  intro s
+  simpa only [d4SpinMinusBasis, coe_basisOfLinearIndependentOfCardEqFinrank'] using
+    P.d4SpinMinusBlockEquiv_serreF_exteriorBasis b hline i s
 
 private theorem d4SpinMinusBlockEquiv_serreH_exteriorBasis (hline : P.line = ⊥)
     (i : Fin 4) (s : {s : Finset (Fin 4) // Odd s.card}) :
@@ -613,23 +618,10 @@ private theorem d4SpinMinusBlockEquiv_serreH_exteriorBasis (hline : P.line = ⊥
       P.typeDQuadraticEquiv_cartanGenerator b (by omega) hline i, SetLike.val_smul]
     simpa [d4SpinMinusExteriorBasis] using
       P.spinAction_typeDSimpleCorootBivector_basis b (by omega) i s
-  rw [hact, map_smul, P.d4SpinMinusBlockEquiv_exteriorBasis, Matrix.mulVec_single_one]
-  ext a
-  -- Evaluate scalar multiplication and the diagonal matrix at one block coordinate.
-  change (typeDSpinWeight s i : ℚ) *
-      ((Pi.single (d4SpinMinusIndexEquiv s) (1 : ℚ) :
-        {a : Fin 24 // d4TripledSummand a = 1} → ℚ) a) =
-    D4Tripled.weightTable.cartanGeneratorMatrixQ i (a : Fin 24)
-      (d4SpinMinusIndexEquiv s : Fin 24)
-  rw [TauCeti.MinusculeWeightTable.cartanGeneratorMatrixQ_apply]
-  simp only [D4Tripled.weightTable_weight, coe_d4SpinMinusIndexEquiv_apply,
-    d4TripledWeight_d4SpinIndex, Pi.single_apply]
-  by_cases h : a = d4SpinMinusIndexEquiv s
-  · subst a
-    simp
-  · have hval : (a : Fin 24) ≠ d4SpinIndex s := by
-      simpa only [← coe_d4SpinMinusIndexEquiv_apply] using fun h' ↦ h (Subtype.ext h')
-    simp [h, hval]
+  rw [hact, map_smul, P.d4SpinMinusBlockEquiv_exteriorBasis]
+  exact
+    d4Block_cartanGeneratorMatrixQ_mulVec_single d4SpinMinusIndexEquiv
+      coe_d4SpinMinusIndexEquiv_apply i s
 
 /-- The odd half-spin coordinate equivalence intertwines each Cartan generator with the diagonal
 weight matrix on the `V(ϖ₃)` block of the tripled table. -/
@@ -640,7 +632,9 @@ theorem d4SpinMinusBlockEquiv_serreH (hline : P.line = ⊥) (i : Fin 4)
         (P.typeDSpinMinusLieRep b hline (TypeDStd.cartanGenerator 4 (by omega) i) x) =
       (D4Tripled.weightTable.cartanGeneratorMatrixQ i).submatrix Subtype.val Subtype.val *ᵥ
         P.d4SpinMinusBlockEquiv b x := by
-  apply P.d4SpinMinusBlockEquiv_intertwines b
-  exact P.d4SpinMinusBlockEquiv_serreH_exteriorBasis b hline i
+  apply blockEquiv_intertwines (P.d4SpinMinusBasis b) (P.d4SpinMinusBlockEquiv b)
+  intro s
+  simpa only [d4SpinMinusBasis, coe_basisOfLinearIndependentOfCardEqFinrank'] using
+    P.d4SpinMinusBlockEquiv_serreH_exteriorBasis b hline i s
 
 end TauCeti.SpinPolarizationData
