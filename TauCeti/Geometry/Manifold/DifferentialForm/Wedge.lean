@@ -74,6 +74,21 @@ theorem bundleWedgeWith_apply_one_one
   simpa only [bundleWedgeWith] using
     (ContinuousAlternatingMap.pairedWedge_apply_one_one (μ := μ x) (hμ x) (φ x) (ψ x) v w)
 
+/-- Precomposing both values of a pointwise bundle-valued paired wedge by a continuous linear map
+commutes with the wedge. -/
+@[simp]
+theorem bundleWedgeWith_compContinuousLinearMap
+    (μ : (x : M) → V₁ x →L[ℝ] V₂ x →L[ℝ] V₃ x)
+    (hμ : ∀ x, Continuous (fun p : V₁ x × V₂ x ↦ μ x p.1 p.2))
+    (φ : RoughBundleForm I M V₁ k) (ψ : RoughBundleForm I M V₂ l) (x : M)
+    (f : E' →L[ℝ] TangentSpace I x) :
+    (bundleWedgeWith μ hμ φ ψ x).compContinuousLinearMap f =
+      ContinuousAlternatingMap.pairedWedge (μ x) (hμ x)
+        ((φ x).compContinuousLinearMap f) ((ψ x).compContinuousLinearMap f) := by
+  simpa only [bundleWedgeWith] using
+    (ContinuousAlternatingMap.pairedWedge_compContinuousLinearMap (μ x) (hμ x)
+      (φ x) (ψ x) f)
+
 /-- Swapping the factors of a fibrewise paired wedge flips the pairing and contributes the graded
 sign. This applies to arbitrary value bundles, with no norm on the tangent fibres or values. -/
 theorem bundleWedgeWith_flip
@@ -225,6 +240,19 @@ theorem wedgeWith_apply (μ : F₁ →L[ℝ] F₂ →L[ℝ] F₃)
           μ (φ x (fun i ↦ v (σ (Fin.castAdd l i))))
             (ψ x (fun j ↦ v (σ (Fin.natAdd k j)))) :=
   bundleWedgeWith_apply _ _ φ ψ x v
+
+/-- Precomposing both values of a pointwise paired rough-form wedge by a continuous linear map
+commutes with the wedge. -/
+@[simp]
+theorem wedgeWith_compContinuousLinearMap (μ : F₁ →L[ℝ] F₂ →L[ℝ] F₃)
+    (φ : RoughForm I M F₁ k) (ψ : RoughForm I M F₂ l) (x : M)
+    (f : E' →L[ℝ] TangentSpace I x) :
+    (φ.wedgeWith μ ψ x).compContinuousLinearMap f =
+      ContinuousAlternatingMap.pairedWedge μ μ.continuous₂
+        ((φ x).compContinuousLinearMap f) ((ψ x).compContinuousLinearMap f) := by
+  simpa only [wedgeWith_apply'] using
+    (ContinuousAlternatingMap.pairedWedge_compContinuousLinearMap μ μ.continuous₂
+      (φ x) (ψ x) f)
 
 /-- Evaluation of the paired rough-form wedge on two one-forms. -/
 theorem wedgeWith_apply_one_one (μ : F₁ →L[ℝ] F₂ →L[ℝ] F₃)
