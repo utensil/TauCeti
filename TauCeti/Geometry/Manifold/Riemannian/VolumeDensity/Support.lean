@@ -28,12 +28,12 @@ namespace TauCeti
 variable {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E] [FiniteDimensional ℝ E]
   {H : Type*} [TopologicalSpace H] {I : ModelWithCorners ℝ E H}
   {M : Type*} [TopologicalSpace M] [ChartedSpace H M] [IsManifold I 1 M]
-  [MeasurableSpace M] [BorelSpace M] [LindelofSpace M]
+  [MeasurableSpace M] [BorelSpace M]
   [RiemannianBundle (fun x : M ↦ TangentSpace I x)]
   [IsContinuousRiemannianBundle E (fun x : M ↦ TangentSpace I x)]
 
 /-- Riemannian volume is positive on every nonempty open set. -/
-instance isOpenPosMeasure_riemannianVolume :
+instance isOpenPosMeasure_riemannianVolume [LindelofSpace M] :
     Measure.IsOpenPosMeasure (riemannianVolume I M) where
   open_pos U hU hne := by
     obtain ⟨x, hx⟩ := hne
@@ -46,6 +46,34 @@ instance isOpenPosMeasure_riemannianVolume :
       rw [riemannianVolume_apply_of_subset inter_subset_right]
       exact hpos_chart
     exact (lt_of_lt_of_le hpos (measure_mono inter_subset_left)).ne'
+
+/-- A continuous nonnegative function which is positive somewhere has strictly positive lower
+Lebesgue integral against the Riemannian volume.  The statement uses the lower integral so it
+remains meaningful without an integrability hypothesis. -/
+theorem lintegral_riemannianVolume_pos [SigmaCompactSpace M]
+    {f : M → ℝ} (hf : Continuous f) (hnn : ∀ x, 0 ≤ f x) (hpos : ∃ x, 0 < f x) :
+    0 < ∫⁻ x, ENNReal.ofReal (f x) ∂riemannianVolume I M := by
+  have hmeas : Measurable (fun x ↦ ENNReal.ofReal (f x)) :=
+    hf.measurable.ennreal_ofReal
+  rw [lintegral_pos_iff_support hmeas]
+  obtain ⟨x, hx⟩ := hpos
+  have hset : {y | f y ≠ 0} = {y | 0 < f y} := by
+    ext y
+    constructor
+    · intro hy
+      exact lt_of_le_of_ne (hnn y) (Ne.symm hy)
+    · intro hy
+      exact ne_of_gt (show 0 < f y from hy)
+  have hopen : IsOpen {y | f y ≠ 0} := by
+    rw [hset]
+    exact hf.isOpen_preimage _ isOpen_Ioi
+  have hmeasure : 0 < riemannianVolume I M {y | f y ≠ 0} :=
+    IsOpen.measure_pos _ hopen ⟨x, ne_of_gt hx⟩
+  apply lt_of_lt_of_le hmeasure
+  apply measure_mono
+  intro y hy
+  have hy' : y ∈ {z | 0 < f z} := hset ▸ hy
+  exact (ENNReal.ofReal_pos.mpr hy').ne'
 
 end TauCeti
 
