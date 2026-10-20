@@ -6,6 +6,7 @@ Authors: The Tau Ceti contributors
 module
 
 public import TauCeti.Geometry.Manifold.DifferentialForm.Pullback.Chart
+public import TauCeti.Geometry.Manifold.DifferentialForm.Pullback.Smooth
 public import TauCeti.Geometry.Manifold.DifferentialForm.Regularity
 public import TauCeti.Geometry.Manifold.ExtChartAt
 public import TauCeti.Geometry.Manifold.VectorBundle.Tangent
@@ -62,6 +63,29 @@ def RoughForm.extendByZero {U : Opens M} (W : Opens M) (ω : RoughForm I U F k) 
   exact fun x ↦ if hx : (x : M) ∈ U then ω ⟨x, hx⟩ else 0
 
 namespace RoughForm
+
+/-! ### Restriction -/
+
+/-- Restrict a rough form on `M` to an open subset `U` by pulling it back along the
+inclusion of `U` into `M`. -/
+def restrict (U : Opens M) (φ : RoughForm I M F k) : RoughForm I U F k :=
+  mpullback I I (Subtype.val : U → M) φ
+
+/-- The restriction of a rough form has the expected pointwise values. -/
+@[simp]
+theorem restrict_apply (U : Opens M) (φ : RoughForm I M F k) (x : U) :
+    restrict U φ x = φ (x : M) := by
+  ext v
+  simp only [restrict, mpullback_apply, Manifold.mfderiv_subtype_val,
+    ContinuousLinearEquiv.coe_coe, Manifold.tangentSpaceOpenEquiv_apply]
+  rfl
+
+/-- Restriction preserves the regularity of a form. -/
+theorem _root_.TauCeti.IsSmoothForm.restrict [IsManifold I 1 M] {n : WithTop ℕ∞} (U : Opens M)
+    {φ : RoughForm I M F k} (hφ : IsSmoothForm I n φ) :
+    IsSmoothForm I n (restrict U φ) := by
+  apply IsSmoothForm.mpullback hφ
+  exact contMDiff_subtype_val
 
 /-- The extension by zero agrees with the form on the smaller open subset. -/
 @[simp]
@@ -131,7 +155,7 @@ subsets of `W` covering it are `C^n`. -/
 theorem IsSmoothForm.of_mpullback_inclusion {W : Opens M} {ι : Type*} {U : ι → Opens M}
     (hU : ∀ i, U i ≤ W) (hcover : ∀ x : W, ∃ i, (x : M) ∈ U i) {n : WithTop ℕ∞}
     {γ : RoughForm I W F k}
-    (hγ : ∀ i, IsSmoothForm I n (mpullback I I (Opens.inclusion (hU i)) γ)) :
+    (hγ : ∀ i, IsSmoothForm I n (TauCeti.mpullback I I (Opens.inclusion (hU i)) γ)) :
     IsSmoothForm I n γ := by
   rw [isSmoothForm_def]
   intro x
