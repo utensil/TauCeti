@@ -8,7 +8,6 @@ module
 public import TauCeti.Geometry.Manifold.DifferentialForm.Basic
 public import TauCeti.LinearAlgebra.BilinearForm.Multilinear
 public import Mathlib.Geometry.Manifold.VectorBundle.ContMDiffSection
-public import Mathlib.Geometry.Manifold.VectorBundle.Hom
 public import TauCeti.Geometry.Manifold.VectorBundle.ContinuousAlternatingMap
 
 /-!
@@ -124,18 +123,6 @@ abbrev SmoothBundleForm (I : ModelWithCorners ℝ E H) (F : Type*)
     [∀ x, IsTopologicalAddGroup (V x)] [∀ x, ContinuousSMul ℝ (V x)]
     [IsManifold I 1 M] (k : ℕ) : Type _ :=
   ↥(smoothBundleForms (I := I) F V k)
-
-/-- Smooth endomorphism-valued two-forms on a vector bundle.
-
-This carrier is the natural home for the curvature of a smooth connection: the coefficient
-bundle is the continuous-linear endomorphism bundle of `V`, while the form degree is two. -/
-abbrev CurvatureForm (I : ModelWithCorners ℝ E H) (F : Type*)
-    [NormedAddCommGroup F] [NormedSpace ℝ F] (V : M → Type*)
-    [∀ x, AddCommGroup (V x)] [∀ x, Module ℝ (V x)] [∀ x, TopologicalSpace (V x)]
-    [TopologicalSpace (TotalSpace F V)] [FiberBundle F V] [VectorBundle ℝ F V]
-    [∀ x, IsTopologicalAddGroup (V x)] [∀ x, ContinuousSMul ℝ (V x)]
-    [IsManifold I 1 M] : Type _ :=
-  SmoothBundleForm I (F →L[ℝ] F) (fun x ↦ V x →L[ℝ] V x) 2
 
 namespace SmoothBundleForm
 
